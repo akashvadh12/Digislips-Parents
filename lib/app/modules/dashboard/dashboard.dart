@@ -346,7 +346,7 @@ class HomeView extends GetView<HomeController> {
                                       ],
 
                                       onTap: () {
-                                        Get.to(ContactPage());
+                                        Get.to(ContactScreen());
                                       },
                                     ),
                                     _buildEnhancedActionCard(
