@@ -68,24 +68,34 @@ class LeaveModel {
 
   /// Deserialize from Firestore
   factory LeaveModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+
+    if (data == null) {
+      throw Exception(
+        'LeaveModel.fromFirestore: Missing document data for ID ${doc.id}',
+      );
+    }
+
+    Timestamp? safeTs(String field) =>
+        data[field] is Timestamp ? data[field] as Timestamp : null;
+
     return LeaveModel(
       id: doc.id,
       leaveType: data['leaveType'] ?? '',
-      fromDate: (data['fromDate'] as Timestamp).toDate(),
-      toDate: (data['toDate'] as Timestamp).toDate(),
-      totalDays: data['totalDays'] ?? 0,
+      fromDate: safeTs('fromDate')?.toDate() ?? DateTime.now(),
+      toDate: safeTs('toDate')?.toDate() ?? DateTime.now(),
+      totalDays: data['totalDays'] is int ? data['totalDays'] as int : 0,
       reason: data['reason'] ?? '',
       destination: data['destination'] ?? '',
       travelMode: data['travelMode'] ?? '',
-      documentUrls: List<String>.from(data['documentUrls'] ?? []),
+      documentUrls: data['documentUrls'] is List
+          ? List<String>.from(data['documentUrls'])
+          : [],
       status: data['status'] ?? 'Pending',
-      submittedAt: (data['submittedAt'] as Timestamp).toDate(),
+      submittedAt: safeTs('submittedAt')?.toDate() ?? DateTime.now(),
       submittedBy: data['submittedBy'] ?? '',
       reviewedBy: data['reviewedBy'],
-      reviewedAt: data['reviewedAt'] != null
-          ? (data['reviewedAt'] as Timestamp).toDate()
-          : null,
+      reviewedAt: safeTs('reviewedAt')?.toDate(),
       reviewComments: data['reviewComments'],
       uid: data['uid'],
       fullName: data['fullName'],
@@ -97,14 +107,14 @@ class LeaveModel {
       department: data['department'],
       semester: data['semester'],
       profileImageUrl: data['profileImageUrl'],
-      isEmailVerified: data['isEmailVerified'],
-      profileComplete: data['profileComplete'],
-      createdAt: data['createdAt'] != null
-          ? (data['createdAt'] as Timestamp).toDate()
+      isEmailVerified: data['isEmailVerified'] is bool
+          ? data['isEmailVerified'] as bool
           : null,
-      updatedAt: data['updatedAt'] != null
-          ? (data['updatedAt'] as Timestamp).toDate()
+      profileComplete: data['profileComplete'] is bool
+          ? data['profileComplete'] as bool
           : null,
+      createdAt: safeTs('createdAt')?.toDate(),
+      updatedAt: safeTs('updatedAt')?.toDate(),
     );
   }
 

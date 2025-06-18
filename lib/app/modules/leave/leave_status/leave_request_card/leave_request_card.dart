@@ -8,11 +8,17 @@ import 'package:intl/intl.dart';
 class LeaveRequestCard extends StatelessWidget {
   final LeaveModel leaveRequest;
   final VoidCallback? onTap;
+  final bool showStudentInfo;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
 
   const LeaveRequestCard({
     Key? key,
     required this.leaveRequest,
     this.onTap,
+    this.showStudentInfo = false,
+    this.onApprove,
+    this.onReject,
   }) : super(key: key);
 
   @override
@@ -66,11 +72,49 @@ class LeaveRequestCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              leaveRequest.leaveType,
-                              style: AppTextStyles.title.copyWith(
-                                fontSize: 16,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  leaveRequest.leaveType.isEmpty 
+                                      ? 'Leave Request' 
+                                      : leaveRequest.leaveType,
+                                  style: AppTextStyles.title.copyWith(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (showStudentInfo) ...[
+                                  const SizedBox(height: 4),
+                                  // Show student name and roll number if available
+                                  if (leaveRequest.fullName != null && leaveRequest.fullName!.isNotEmpty)
+                                    Text(
+                                      leaveRequest.fullName!,
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.blackColor,
+                                      ),
+                                    ),
+                                  // Show roll number and department
+                                  if (leaveRequest.rollNumber != null && leaveRequest.rollNumber!.isNotEmpty)
+                                    Text(
+                                      '${leaveRequest.rollNumber}${leaveRequest.department != null && leaveRequest.department!.isNotEmpty ? ' | ${leaveRequest.department}' : ''}',
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        fontSize: 12,
+                                        color: AppColors.greyColor,
+                                      ),
+                                    ),
+                                  // Show semester if available
+                                  if (leaveRequest.semester != null && leaveRequest.semester!.isNotEmpty)
+                                    Text(
+                                      'Semester ${leaveRequest.semester}',
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        fontSize: 12,
+                                        color: AppColors.greyColor,
+                                      ),
+                                    ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
@@ -81,7 +125,7 @@ class LeaveRequestCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 
-                // Date Range
+                // Date Range or Duration Info
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -96,58 +140,50 @@ class LeaveRequestCard extends StatelessWidget {
                         color: AppColors.greyColor,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        dateFormat.format(leaveRequest.fromDate),
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          Icons.arrow_forward,
-                          size: 14,
-                          color: AppColors.greyColor,
-                        ),
-                      ),
-                      Text(
-                        dateFormat.format(leaveRequest.toDate),
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      Expanded(
                         child: Text(
-                          '${leaveRequest.totalDays} ${leaveRequest.totalDays == 1 ? 'day' : 'days'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                          leaveRequest.totalDays > 0
+                              ? '${dateFormat.format(leaveRequest.fromDate)} → ${dateFormat.format(leaveRequest.toDate)}'
+                              : 'Date range not specified',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontSize: 13,
                           ),
                         ),
                       ),
+                      if (leaveRequest.totalDays > 0) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${leaveRequest.totalDays} ${leaveRequest.totalDays == 1 ? 'day' : 'days'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
                 
                 const SizedBox(height: 12),
                 
+                // Reason or Review Comments
                 if (leaveRequest.status.toLowerCase() == 'rejected' && 
                     leaveRequest.reviewComments != null && 
                     leaveRequest.reviewComments!.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.rejectedColor.withOpacity(0.05),
+                      color: AppColors.error.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.rejectedColor.withOpacity(0.2),
+                        color: AppColors.error.withOpacity(0.2),
                         width: 1,
                       ),
                     ),
@@ -159,14 +195,15 @@ class LeaveRequestCard extends StatelessWidget {
                             Icon(
                               Icons.info_outline,
                               size: 16,
-                              color: AppColors.rejectedColor,
+                              color: AppColors.error,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Rejection Reason',
                               style: AppTextStyles.bodyMedium.copyWith(
                                 fontSize: 13,
-                                color: AppColors.rejectedColor,
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -182,7 +219,52 @@ class LeaveRequestCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ] else ...[
+                ] else if (leaveRequest.status.toLowerCase() == 'approved' && 
+                          leaveRequest.reviewComments != null && 
+                          leaveRequest.reviewComments!.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.success.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 16,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Approval Comments',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                fontSize: 13,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          leaveRequest.reviewComments!,
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 13,
+                            color: AppColors.blackColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if (leaveRequest.reason.isNotEmpty) ...[
                   Text(
                     'Reason: ${leaveRequest.reason}',
                     style: AppTextStyles.body.copyWith(
@@ -195,7 +277,7 @@ class LeaveRequestCard extends StatelessWidget {
                 
                 const SizedBox(height: 12),
                 
-                // Submission date
+                // Submission date and submitted by info
                 Row(
                   children: [
                     Icon(
@@ -204,12 +286,45 @@ class LeaveRequestCard extends StatelessWidget {
                       color: AppColors.greyColor,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      'Submitted on ${dateFormat.format(leaveRequest.submittedAt)}',
-                      style: AppTextStyles.caption,
+                    Expanded(
+                      child: Text(
+                        'Submitted on ${dateFormat.format(leaveRequest.submittedAt)}${leaveRequest.submittedBy.isNotEmpty ? ' by ${leaveRequest.submittedBy}' : ''}',
+                        style: AppTextStyles.caption,
+                      ),
                     ),
                   ],
                 ),
+
+                // Show reviewed info if available
+                if (leaveRequest.reviewedBy != null && 
+                    leaveRequest.reviewedBy!.isNotEmpty && 
+                    leaveRequest.reviewedAt != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        leaveRequest.status.toLowerCase() == 'approved' 
+                            ? Icons.check_circle 
+                            : Icons.cancel,
+                        size: 14,
+                        color: leaveRequest.status.toLowerCase() == 'approved' 
+                            ? AppColors.success 
+                            : AppColors.error,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${leaveRequest.status} on ${dateFormat.format(leaveRequest.reviewedAt!)} by ${leaveRequest.reviewedBy}',
+                          style: AppTextStyles.caption.copyWith(
+                            color: leaveRequest.status.toLowerCase() == 'approved' 
+                                ? AppColors.success 
+                                : AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
 
                 // Show destination if available
                 if (leaveRequest.destination.isNotEmpty) ...[
@@ -268,6 +383,51 @@ class LeaveRequestCard extends StatelessWidget {
                         '${leaveRequest.documentUrls.length} ${leaveRequest.documentUrls.length == 1 ? 'document' : 'documents'} attached',
                         style: AppTextStyles.caption,
                       ),
+                    ],
+                  ),
+                ],
+
+                // Action buttons for pending requests (admin/teacher view)
+                if (leaveRequest.status.toLowerCase() == 'pending' && 
+                    (onApprove != null || onReject != null)) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      if (onReject != null) ...[
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: onReject,
+                            icon: const Icon(Icons.close, size: 16),
+                            label: const Text('Reject'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: AppColors.error),
+                              foregroundColor: AppColors.error,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      if (onApprove != null) ...[
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: onApprove,
+                            icon: const Icon(Icons.check, size: 16),
+                            label: const Text('Approve'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
