@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "647962445664",
+    "project_id": "digi-slip-3cc90",
+    "storage_bucket": "digi-slip-3cc90.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:647962445664:android:cb7e7d93a3717a20a08005",
+        "android_client_info": {
+          "package_name": "com.example.digislips"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOcocbvrZBZGKqeckZHcEbfKiJS9vHjMs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
