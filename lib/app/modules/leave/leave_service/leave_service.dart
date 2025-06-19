@@ -33,11 +33,41 @@ class LeaveService {
         .collection('students')
         .where("department", isEqualTo: "CS")
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .asyncMap((studentSnapshot) async {
+          List<LeaveModel> allLeaves = [];
+
+          // Keep your existing mapping for student documents
+          final studentLeaves = studentSnapshot.docs
               .map((doc) => LeaveModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+
+          // Now fetch leaves from each student's subcollection
+          for (var studentDoc in studentSnapshot.docs) {
+            try {
+              var leaveSnapshot = await studentDoc.reference
+                  .collection('leave')
+                  .get();
+
+              allLeaves.addAll(
+                leaveSnapshot.docs.map((leaveDoc) {
+                  // Combine student data with leave data
+                  var leave = LeaveModel.fromFirestore(leaveDoc);
+                  return leave.copyWith(
+                    uid: studentDoc.id,
+                    fullName: studentDoc['fullName'],
+                    rollNumber: studentDoc['rollNumber'],
+                    department: studentDoc['department'],
+                  );
+                }).toList(),
+              );
+            } catch (e) {
+              print('Error fetching leaves for student ${studentDoc.id}: $e');
+            }
+          }
+
+          // Combine both student and leave data if needed
+          return allLeaves..addAll(studentLeaves);
+        });
   }
 
   // Get all pending leave applications with student details

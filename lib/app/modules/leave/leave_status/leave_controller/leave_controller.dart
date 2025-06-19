@@ -25,7 +25,7 @@ class LeaveController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       final uid = prefs.getString('uid');
       final role = prefs.getString('userRole') ?? 'student';
-      
+
       if (uid != null && uid.isNotEmpty) {
         currentUserId.value = uid;
         userRole.value = role;
@@ -42,12 +42,17 @@ class LeaveController extends GetxController {
     // If user is admin/teacher, get all leave applications
     // If user is student, get only their applications
     Stream<List<LeaveModel>> leaveStream;
-    
+
     if (userRole.value == 'admin' || userRole.value == 'teacher') {
-      leaveStream = _leaveService.getAllLeaveApplications()
-          .map((list) => list.map((doc) => LeaveModel.fromFirestore(doc as DocumentSnapshot)).toList());
+      leaveStream = _leaveService.getAllLeaveApplications().map(
+        (list) => list
+            .map((doc) => LeaveModel.fromFirestore(doc as DocumentSnapshot))
+            .toList(),
+      );
     } else {
-      leaveStream = _leaveService.getStudentLeaveApplications(currentUserId.value);
+      leaveStream = _leaveService.getStudentLeaveApplications(
+        currentUserId.value,
+      );
     }
 
     leaveStream.listen(
@@ -55,29 +60,28 @@ class LeaveController extends GetxController {
         // Sort leaves by submission date (newest first)
         leaves.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
         leaveRequests.value = leaves;
-        print('Successfully fetched leave requests: ${leaves.length} applications');
+        print('Successfully fetched leave requests: ${leaves} applications');
       },
       onError: (error) {
-        Get.snackbar(
-          'Error',
-          'Failed to fetch leave requests: $error',
-        );
+        Get.snackbar('Error', 'Failed to fetch leave requests: $error');
       },
     );
   }
 
   List<LeaveModel> get filteredRequests {
     List<LeaveModel> filtered = leaveRequests;
-    
+
     // Apply status filter
     if (selectedFilter.value != 'All') {
       filtered = filtered
-          .where((request) =>
-              request.status.toLowerCase() ==
-              selectedFilter.value.toLowerCase())
+          .where(
+            (request) =>
+                request.status.toLowerCase() ==
+                selectedFilter.value.toLowerCase(),
+          )
           .toList();
     }
-    
+
     return filtered;
   }
 
@@ -95,11 +99,11 @@ class LeaveController extends GetxController {
 
     try {
       isLoading.value = true;
-      
+
       // Get current user name from preferences for reviewedBy field
       final prefs = await SharedPreferences.getInstance();
       final reviewerName = prefs.getString('userName') ?? 'Admin';
-      
+
       await _leaveService.updateLeaveStatus(
         userId: currentUserId.value,
         leaveId: leaveId,
@@ -108,11 +112,11 @@ class LeaveController extends GetxController {
         reviewComments: reviewComments,
         studentId: studentId ?? '',
       );
-      
-      String message = status.toLowerCase() == 'approved' 
+
+      String message = status.toLowerCase() == 'approved'
           ? 'Leave request approved successfully'
           : 'Leave request rejected successfully';
-          
+
       Get.snackbar('Success', message);
     } catch (e) {
       Get.snackbar('Error', 'Failed to update leave request: $e');
@@ -124,7 +128,7 @@ class LeaveController extends GetxController {
   // Method to show approval/rejection dialog
   Future<void> showApprovalDialog(LeaveModel request) async {
     String? reviewComments;
-    
+
     Get.dialog(
       AlertDialog(
         title: Text('Review Leave Application'),
@@ -148,10 +152,7 @@ class LeaveController extends GetxController {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: Text('Cancel')),
           TextButton(
             onPressed: () async {
               Get.back();
@@ -217,9 +218,15 @@ class LeaveController extends GetxController {
         final allRequests = leaveRequests;
         return {
           'total': allRequests.length,
-          'approved': allRequests.where((r) => r.status.toLowerCase() == 'approved').length,
-          'pending': allRequests.where((r) => r.status.toLowerCase() == 'pending').length,
-          'rejected': allRequests.where((r) => r.status.toLowerCase() == 'rejected').length,
+          'approved': allRequests
+              .where((r) => r.status.toLowerCase() == 'approved')
+              .length,
+          'pending': allRequests
+              .where((r) => r.status.toLowerCase() == 'pending')
+              .length,
+          'rejected': allRequests
+              .where((r) => r.status.toLowerCase() == 'rejected')
+              .length,
           'totalDays': allRequests.fold(0, (sum, r) => sum + r.totalDays),
           'approvedDays': allRequests
               .where((r) => r.status.toLowerCase() == 'approved')
@@ -271,12 +278,14 @@ class LeaveController extends GetxController {
   }
 
   // Helper method to check if current user can approve/reject
-  bool get canApproveReject => userRole.value == 'admin' || userRole.value == 'teacher';
-  
+  bool get canApproveReject =>
+      userRole.value == 'admin' || userRole.value == 'teacher';
+
   // Helper method to check if current user can delete
   bool canDelete(LeaveModel request) {
     if (userRole.value == 'admin') return true;
-    if (userRole.value == 'student' && request.status.toLowerCase() == 'pending') {
+    if (userRole.value == 'student' &&
+        request.status.toLowerCase() == 'pending') {
       return true;
     }
     return false;

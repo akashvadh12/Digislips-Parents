@@ -274,7 +274,7 @@ class ProfileScreen extends StatelessWidget {
         // Personal & Contact Information Card
         _buildInfoCard(
           title: 'Personal & Contact Information',
-          
+
           icon: Icons.person_outline,
           children: [
             _buildInfoRow(
@@ -295,20 +295,6 @@ class ProfileScreen extends StatelessWidget {
               controller.phone,
               AppColors.success,
             ),
-            _buildDivider(),
-            _buildSectionHeader('Parent Contact'),
-            _buildInfoRow(
-              Icons.phone_outlined,
-              'Parent Phone',
-              controller.parentPhone,
-              AppColors.success,
-            ),
-            _buildInfoRow(
-              Icons.email_outlined,
-              'Parent Email',
-              controller.parentEmail,
-              AppColors.secondary,
-            ),
           ],
         ),
 
@@ -324,18 +310,6 @@ class ProfileScreen extends StatelessWidget {
               'Department',
               controller.department,
               AppColors.primary,
-            ),
-            _buildInfoRow(
-              Icons.badge_outlined,
-              'Roll Number',
-              controller.studentId,
-              AppColors.warning,
-            ),
-            _buildInfoRow(
-              Icons.calendar_today_outlined,
-              'Semester',
-              controller.semester,
-              AppColors.pendingColor,
             ),
           ],
         ),
@@ -377,24 +351,6 @@ class ProfileScreen extends StatelessWidget {
               AppColors.success,
               TextInputType.phone,
             ),
-            SizedBox(height: 20),
-            _buildSectionHeader('Parent Contact'),
-            SizedBox(height: 12),
-            _buildEditField(
-              'Parent Phone',
-              controller.parentPhoneController,
-              Icons.phone_outlined,
-              AppColors.success,
-              TextInputType.phone,
-            ),
-            SizedBox(height: 16),
-            _buildEditField(
-              'Parent Email',
-              controller.parentEmailController,
-              Icons.email_outlined,
-              AppColors.secondary,
-              TextInputType.emailAddress,
-            ),
           ],
         ),
 
@@ -412,14 +368,8 @@ class ProfileScreen extends StatelessWidget {
               AppColors.primary,
             ),
             SizedBox(height: 16),
-            _buildSemesterDropdown(),
+
             SizedBox(height: 16),
-            _buildReadOnlyField(
-              'Roll Number',
-              controller.studentId,
-              Icons.badge_outlined,
-              AppColors.warning,
-            ),
           ],
         ),
 
@@ -780,71 +730,6 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSemesterDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Semester',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.blackColor,
-          ),
-        ),
-        SizedBox(height: 8),
-        Obx(
-          () => Container(
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderColor, width: 1.5),
-            ),
-            child: DropdownButtonFormField<String>(
-              value: controller.selectedSemester.value,
-              decoration: InputDecoration(
-                prefixIcon: Container(
-                  margin: EdgeInsets.all(12),
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.pendingColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.calendar_today_outlined,
-                    color: AppColors.pendingColor,
-                    size: 18,
-                  ),
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-              ),
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: AppColors.blackColor,
-              ),
-              items: controller.availableSemesters.map((semester) {
-                return DropdownMenuItem<String>(
-                  value: semester,
-                  child: Text(semester),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  controller.selectedSemester.value = value;
-                }
-              },
-            ),
           ),
         ),
       ],

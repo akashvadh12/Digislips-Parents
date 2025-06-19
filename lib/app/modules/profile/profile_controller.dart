@@ -32,22 +32,8 @@ class ProfileController extends GetxController {
   // Edit form controllers
   final fullNameController = TextEditingController();
   final phoneController = TextEditingController();
-  final parentPhoneController = TextEditingController();
-  final parentEmailController = TextEditingController();
   final departmentController = TextEditingController();
-  var selectedSemester = '1st Semester'.obs;
 
-  // Available semesters
-  final List<String> availableSemesters = [
-    '1st Semester',
-    '2nd Semester',
-    '3rd Semester',
-    '4th Semester',
-    '5th Semester',
-    '6th Semester',
-    '7th Semester',
-    '8th Semester',
-  ];
 
   // Available departments (you can customize this)
   final List<String> availableDepartments = [
@@ -83,8 +69,6 @@ class ProfileController extends GetxController {
   void onClose() {
     fullNameController.dispose();
     phoneController.dispose();
-    parentPhoneController.dispose();
-    parentEmailController.dispose();
     departmentController.dispose();
     super.onClose();
   }
@@ -144,10 +128,9 @@ class ProfileController extends GetxController {
     if (student.value != null) {
       fullNameController.text = student.value!.fullName;
       phoneController.text = student.value!.phone;
-      parentPhoneController.text = student.value!.parentPhone ?? '';
-      parentEmailController.text = student.value!.parentEmail ?? '';
+
       departmentController.text = student.value!.department;
-      selectedSemester.value = student.value!.semester;
+
     }
   }
 
@@ -202,34 +185,12 @@ class ProfileController extends GetxController {
         return;
       }
 
-      // Validate parent phone if provided
-      if (parentPhoneController.text.trim().isNotEmpty && 
-          !_isValidPhone(parentPhoneController.text.trim())) {
-        _showErrorSnackbar('Validation Error', 'Please enter a valid parent phone number');
-        return;
-      }
-
-      // Validate parent email if provided
-      if (parentEmailController.text.trim().isNotEmpty && 
-          !_isValidEmail(parentEmailController.text.trim())) {
-        _showErrorSnackbar('Validation Error', 'Please enter a valid parent email address');
-        return;
-      }
 
       // Create updated student object
       final updatedStudent = student.value!.copyWith(
         fullName: fullNameController.text.trim(),
         phone: phoneController.text.trim(),
-        parentPhone: parentPhoneController.text.trim().isEmpty 
-            ? null 
-            : parentPhoneController.text.trim(),
-        parentEmail: parentEmailController.text.trim().isEmpty 
-            ? null 
-            : parentEmailController.text.trim(),
-        department: departmentController.text.trim().isEmpty
-            ? selectedSemester.value
-            : departmentController.text.trim(),
-        semester: selectedSemester.value,
+       
       );
 
       await updateStudentData(updatedStudent);

@@ -85,7 +85,7 @@ class LeaveModel {
       fromDate: safeTs('fromDate')?.toDate() ?? DateTime.now(),
       toDate: safeTs('toDate')?.toDate() ?? DateTime.now(),
       totalDays: data['totalDays'] is int ? data['totalDays'] as int : 0,
-      reason: data['reason'] ?? '',
+      reason: data['reason'] ?? 'Fever and rest',
       destination: data['destination'] ?? '',
       travelMode: data['travelMode'] ?? '',
       documentUrls: data['documentUrls'] is List
@@ -208,6 +208,8 @@ class LeaveModel {
     if (uid != null) 'uid': uid,
     if (fullName != null) 'fullName': fullName,
     if (email != null) 'email': email,
+    if (leaveType != null) 'leave': leaveType,
+    if (reason != null) 'reason': reason,
     if (phone != null) 'phone': phone,
     if (parentEmail != null) 'parentEmail': parentEmail,
     if (parentPhone != null) 'parentPhone': parentPhone,
