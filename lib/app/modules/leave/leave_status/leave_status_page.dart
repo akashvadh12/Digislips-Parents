@@ -73,23 +73,8 @@ class LeaveRequestsScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+
                         // Add notification or action icon
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.notifications_outlined,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -262,6 +247,7 @@ class LeaveRequestsScreen extends StatelessWidget {
                                           _showEnhancedLeaveDetailDialog(
                                             context,
                                             request,
+                                            leaveController,
                                           ),
                                       onApprove:
                                           leaveController.canApproveReject &&
@@ -498,6 +484,7 @@ class LeaveRequestsScreen extends StatelessWidget {
   void _showEnhancedLeaveDetailDialog(
     BuildContext context,
     LeaveModel request,
+    leaveController,
   ) {
     final dateFormat = DateFormat('MMM dd, yyyy');
 
@@ -672,25 +659,15 @@ class LeaveRequestsScreen extends StatelessWidget {
               // Enhanced Footer
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(
-                        'Close',
-                        style: TextStyle(
-                          color: AppColors.greyColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      onPressed: () {
+                        leaveController.showApprovalDialog(request);
+                        print("Approve/reject");
+                      },
+                      child: const Text("Approve/Reject"),
                     ),
                   ],
                 ),

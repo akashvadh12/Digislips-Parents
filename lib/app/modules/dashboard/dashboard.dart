@@ -245,24 +245,24 @@ class HomeView extends GetView<HomeController> {
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                             ),
-                                            Text(
-                                              'Roll No: ${controller.studentId}',
-                                              style: AppTextStyles
-                                                  .profileSubtitle
-                                                  .copyWith(fontSize: 12),
-                                            ),
-                                            if (controller
-                                                .studentSemester
-                                                .isNotEmpty)
-                                              Text(
-                                                controller.studentSemester,
-                                                style: AppTextStyles
-                                                    .profileSubtitle
-                                                    .copyWith(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                              ),
+                                            // Text(
+                                            //   'Roll No: ${controller.studentId}',
+                                            //   style: AppTextStyles
+                                            //       .profileSubtitle
+                                            //       .copyWith(fontSize: 12),
+                                            // ),
+                                            // if (controller
+                                            //     .studentSemester
+                                            //     .isNotEmpty)
+                                            //   Text(
+                                            //     controller.studentSemester,
+                                            //     style: AppTextStyles
+                                            //         .profileSubtitle
+                                            //         .copyWith(
+                                            //           fontSize: 11,
+                                            //           color: Colors.grey[600],
+                                            //         ),
+                                            //   ),
                                           ],
                                         ),
                                       ),

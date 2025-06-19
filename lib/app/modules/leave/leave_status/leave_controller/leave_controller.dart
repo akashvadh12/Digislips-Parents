@@ -29,9 +29,11 @@ class LeaveController extends GetxController {
       if (uid != null && uid.isNotEmpty) {
         currentUserId.value = uid;
         userRole.value = role;
+        print('🔥 Initialized user - ID: $uid, Role: $role');
         _listenToLeaveRequests();
       }
     } catch (e) {
+      print('❌ Error initializing user: $e');
       Get.snackbar('Error', 'Failed to initialize user: $e');
     }
   }
@@ -39,20 +41,18 @@ class LeaveController extends GetxController {
   void _listenToLeaveRequests() {
     if (currentUserId.value.isEmpty) return;
 
+    print('🔍 Listening to leave requests for role: ${userRole.value}');
+
     // If user is admin/teacher, get all leave applications
     // If user is student, get only their applications
     Stream<List<LeaveModel>> leaveStream;
 
     if (userRole.value == 'admin' || userRole.value == 'teacher') {
-      leaveStream = _leaveService.getAllLeaveApplications().map(
-        (list) => list
-            .map((doc) => LeaveModel.fromFirestore(doc as DocumentSnapshot))
-            .toList(),
-      );
+      print('👨‍💼 Fetching all leave applications for admin/teacher');
+      leaveStream = _leaveService.getAllLeaveApplicationsForRole();
     } else {
-      leaveStream = _leaveService.getStudentLeaveApplications(
-        currentUserId.value,
-      );
+      print('👨‍🎓 Fetching student leave applications for: ${currentUserId.value}');
+      leaveStream = _leaveService.getStudentLeaveApplications(currentUserId.value);
     }
 
     leaveStream.listen(
@@ -60,9 +60,10 @@ class LeaveController extends GetxController {
         // Sort leaves by submission date (newest first)
         leaves.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
         leaveRequests.value = leaves;
-        print('Successfully fetched leave requests: ${leaves} applications');
+        print('✅ Successfully fetched ${leaves.length} leave requests');
       },
       onError: (error) {
+        print('❌ Error fetching leave requests: $error');
         Get.snackbar('Error', 'Failed to fetch leave requests: $error');
       },
     );
@@ -93,32 +94,55 @@ class LeaveController extends GetxController {
     String? studentId,
   }) async {
     if (currentUserId.value.isEmpty) {
+      print('❌ User not authenticated');
       Get.snackbar('Error', 'User not authenticated');
+      return;
+    }
+
+    // Find the leave request to get the correct student ID
+    final leaveRequest = leaveRequests.firstWhereOrNull((leave) => leave.id == leaveId);
+    if (leaveRequest == null) {
+      print('❌ Leave request not found with ID: $leaveId');
+      Get.snackbar('Error', 'Leave request not found');
+      return;
+    }
+
+    // Use the student ID from the leave request (uid field)
+    final actualStudentId = leaveRequest.uid ?? studentId;
+    if (actualStudentId == null || actualStudentId.isEmpty) {
+      print('❌ Student ID not found for leave request: $leaveId');
+      Get.snackbar('Error', 'Student ID not found');
       return;
     }
 
     try {
       isLoading.value = true;
+      print('🔄 Starting leave status update...');
+      print('📋 Leave ID: $leaveId');
+      print('👤 Student ID: $actualStudentId');
+      print('📊 New Status: $status');
 
       // Get current user name from preferences for reviewedBy field
       final prefs = await SharedPreferences.getInstance();
       final reviewerName = prefs.getString('userName') ?? 'Admin';
 
       await _leaveService.updateLeaveStatus(
-        userId: currentUserId.value,
+        studentId: actualStudentId,
         leaveId: leaveId,
         status: status,
         reviewedBy: reviewerName,
         reviewComments: reviewComments,
-        studentId: studentId ?? '',
+        userId: currentUserId.value,
       );
 
       String message = status.toLowerCase() == 'approved'
           ? 'Leave request approved successfully'
           : 'Leave request rejected successfully';
 
+      print('✅ Leave status updated successfully');
       Get.snackbar('Success', message);
     } catch (e) {
+      print('❌ Failed to update leave status: $e');
       Get.snackbar('Error', 'Failed to update leave request: $e');
     } finally {
       isLoading.value = false;
@@ -129,6 +153,9 @@ class LeaveController extends GetxController {
   Future<void> showApprovalDialog(LeaveModel request) async {
     String? reviewComments;
 
+    print('📝 Showing approval dialog for leave: ${request.id}');
+    print('👤 Student: ${request.fullName} (${request.uid})');
+
     Get.dialog(
       AlertDialog(
         title: Text('Review Leave Application'),
@@ -137,8 +164,10 @@ class LeaveController extends GetxController {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Student: ${request.fullName}'),
+            Text('Roll Number: ${request.rollNumber}'),
             Text('Leave Type: ${request.leaveType}'),
             Text('Duration: ${request.totalDays} days'),
+            Text('Reason: ${request.reason}'),
             SizedBox(height: 16),
             TextField(
               decoration: InputDecoration(
@@ -152,27 +181,35 @@ class LeaveController extends GetxController {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              print('❌ Approval dialog cancelled');
+              Get.back();
+            },
+            child: Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
+              print('❌ Rejecting leave request: ${request.id}');
               Get.back();
               await updateLeaveStatus(
                 request.id!,
                 'Rejected',
                 reviewComments: reviewComments,
-                studentId: request.id,
+                studentId: request.uid,
               );
             },
             child: Text('Reject', style: TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
             onPressed: () async {
+              print('✅ Approving leave request: ${request.id}');
               Get.back();
               await updateLeaveStatus(
                 request.id!,
                 'Approved',
                 reviewComments: reviewComments,
-                studentId: request.id,
+                studentId: request.uid,
               );
             },
             child: Text('Approve'),
@@ -184,16 +221,19 @@ class LeaveController extends GetxController {
 
   Future<void> deleteLeaveRequest(String leaveId) async {
     if (currentUserId.value.isEmpty) {
+      print('❌ User not authenticated for delete operation');
       Get.snackbar('Error', 'User not authenticated');
       return;
     }
 
     try {
       isLoading.value = true;
+      print('🗑️ Deleting leave request: $leaveId');
       // Implement delete functionality in service
       // await _leaveService.deleteLeaveApplication(currentUserId.value, leaveId);
       Get.snackbar('Success', 'Leave request deleted successfully');
     } catch (e) {
+      print('❌ Failed to delete leave request: $e');
       Get.snackbar('Error', 'Failed to delete leave request: $e');
     } finally {
       isLoading.value = false;
@@ -216,6 +256,7 @@ class LeaveController extends GetxController {
       if (userRole.value == 'admin' || userRole.value == 'teacher') {
         // Return statistics for all applications
         final allRequests = leaveRequests;
+        print('📊 Calculating statistics for ${allRequests.length} requests');
         return {
           'total': allRequests.length,
           'approved': allRequests
@@ -236,6 +277,7 @@ class LeaveController extends GetxController {
         return await _leaveService.getLeaveStatistics(currentUserId.value);
       }
     } catch (e) {
+      print('❌ Failed to get leave statistics: $e');
       Get.snackbar('Error', 'Failed to get leave statistics: $e');
       return {
         'total': 0,
@@ -263,15 +305,17 @@ class LeaveController extends GetxController {
         fromDate: fromDate,
         toDate: toDate,
         excludeLeaveId: excludeLeaveId,
-        studentId: '',
+        studentId: currentUserId.value,
       );
     } catch (e) {
+      print('❌ Failed to check overlapping leave: $e');
       Get.snackbar('Error', 'Failed to check overlapping leave: $e');
       return false;
     }
   }
 
   Future<void> refreshLeaveRequests() async {
+    print('🔄 Refreshing leave requests...');
     if (currentUserId.value.isNotEmpty) {
       _listenToLeaveRequests();
     }
