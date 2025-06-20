@@ -117,12 +117,14 @@ class LoginController extends GetxController {
         await prefs.setString('uid', userCredential.user!.uid);
 
         // Store user role in SharedPreferences
+        await prefs.setString('Email', email);
         await prefs.setString('userRole', selectedRole.value!);
         await prefs.setBool('isParent', isParent.value);
         await prefs.setBool('isTeacher', isTeacher.value);
 
         // 🎉 Print session info with emojis
         print("🔐✅ Login Successful!");
+        print("😁👌👌 $email");
         print("🆔 UID: ${userCredential.user!.uid}");
         print("🧑‍💼 Role: ${selectedRole.value!}");
         print("👨‍👧 isParent: ${isParent.value}");
@@ -156,8 +158,10 @@ class LoginController extends GetxController {
     String? userRole = prefs.getString('userRole');
     bool? isParent = prefs.getBool('isParent');
     bool? isTeacher = prefs.getBool('isTeacher');
+    String? email = prefs.getString('Email');
 
     // Print or use them
+    print("email is 😁😁👌 $email");
     print('UID😁😁😁👍: $uid');
     print('Role😊👌👌: $userRole');
     print('Is Parent😁: $isParent');
