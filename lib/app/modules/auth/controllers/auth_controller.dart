@@ -1,5 +1,5 @@
 import 'package:digislips/app/core/theme/app_colors.dart';
-import 'package:digislips/app/modules/auth/StudentRegistration/StudentRegistration.dart';
+import 'package:digislips/app/modules/auth/Registration/Registration.dart';
 import 'package:digislips/app/routes/app_pages.dart';
 import 'package:digislips/app/shared/widgets/bottomnavigation/bottomnavigation.dart';
 import 'package:get/get.dart';
@@ -14,7 +14,7 @@ class LoginController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
-  
+
   // Role selection variables
   final selectedRole = Rx<String?>(null);
   final isParent = false.obs;
@@ -32,7 +32,10 @@ class LoginController extends GetxController {
   Future<void> _checkIfLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     final uid = prefs.getString('uid');
+
     final userRole = prefs.getString('userRole');
+    print("this is user id😁😁👍 $uid");
+    print("this is user role:😁😁👌 $userRole");
 
     if (uid != null && _auth.currentUser != null && userRole != null) {
       // If UID exists, session is valid, and role is stored
@@ -112,21 +115,61 @@ class LoginController extends GetxController {
       if (userCredential.user != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('uid', userCredential.user!.uid);
-        
+
         // Store user role in SharedPreferences
         await prefs.setString('userRole', selectedRole.value!);
         await prefs.setBool('isParent', isParent.value);
         await prefs.setBool('isTeacher', isTeacher.value);
 
+        // 🎉 Print session info with emojis
+        print("🔐✅ Login Successful!");
+        print("🆔 UID: ${userCredential.user!.uid}");
+        print("🧑‍💼 Role: ${selectedRole.value!}");
+        print("👨‍👧 isParent: ${isParent.value}");
+        print("👩‍🏫 isTeacher: ${isTeacher.value}");
+
+        // Load user details from preferences (optional)
+        getUserDetailsFromPrefs();
+
         // Navigate to dashboard and remove login from stack
         Get.offAllNamed(Routes.BOTTOM_NAVIGATION);
 
-        _showSnackbar('Success', 'Login successful as ${selectedRole.value}!', isSuccess: true);
+        _showSnackbar(
+          'Success',
+          'Login successful as ${selectedRole.value}!',
+          isSuccess: true,
+        );
       }
     } on FirebaseAuthException catch (e) {
       _handleFirebaseError(e);
     } finally {
       isLoading(false);
+    }
+  }
+
+  // get user data
+  Future<void> getUserDetailsFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Get stored values
+    String? uid = prefs.getString('uid');
+    String? userRole = prefs.getString('userRole');
+    bool? isParent = prefs.getBool('isParent');
+    bool? isTeacher = prefs.getBool('isTeacher');
+
+    // Print or use them
+    print('UID😁😁😁👍: $uid');
+    print('Role😊👌👌: $userRole');
+    print('Is Parent😁: $isParent');
+    print('Is Teacher😁: $isTeacher');
+
+    // Example: Navigate based on role
+    if (userRole == 'parent') {
+      Get.offAllNamed('/parent-dashboard');
+    } else if (userRole == 'teacher') {
+      Get.offAllNamed('/teacher-dashboard');
+    } else {
+      Get.offAllNamed('/default-dashboard');
     }
   }
 
@@ -159,7 +202,10 @@ class LoginController extends GetxController {
     if (isParent.value) {
       Get.to(() => RegistrationScreen());
     } else {
-      _showSnackbar('Info', 'Only parents can sign up. Teachers should contact administration.');
+      _showSnackbar(
+        'Info',
+        'Only parents can sign up. Teachers should contact administration.',
+      );
     }
   }
 
