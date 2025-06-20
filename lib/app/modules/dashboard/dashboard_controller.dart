@@ -22,6 +22,10 @@ class LeaveApplication {
   final Color statusColor;
   final String? id;
   final String? reason;
+  final String? studentName;
+  final String? rollNumber;
+  final String? department;
+  final String? studentId;
 
   LeaveApplication({
     required this.type,
@@ -30,6 +34,10 @@ class LeaveApplication {
     required this.statusColor,
     this.id,
     this.reason,
+    this.studentName,
+    this.rollNumber,
+    this.department,
+    this.studentId,
   });
 
   // Factory method to create from LeaveModel
@@ -68,6 +76,10 @@ class LeaveApplication {
       status: leave.status,
       statusColor: statusColor,
       reason: leave.reason,
+      studentName: leave.fullName,
+      rollNumber: leave.rollNumber,
+      department: leave.department,
+      studentId: leave.uid,
     );
   }
 }
@@ -76,12 +88,12 @@ class HomeController extends GetxController {
   var selectedIndex = 0.obs;
   var isLoading = true.obs;
   var isLoadingLeaves = false.obs;
-  var student = Rxn<Student>();
+  var student = Rxn<Student>(); // Current logged-in teacher data
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LeaveService _leaveService = LeaveService();
 
-  // Updated to use reactive list
+  // Updated to use reactive list for all students' leave applications
   final recentLeaveApplications = <LeaveApplication>[].obs;
 
   // Stream subscription for leave applications
@@ -90,7 +102,8 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchStudentData();
+    fetchCurrentTeacherData();
+    fetchAllStudentsLeaveApplications();
   }
 
   @override
@@ -99,7 +112,8 @@ class HomeController extends GetxController {
     super.onClose();
   }
 
-  Future<void> fetchStudentData() async {
+  // Fetch current logged-in teacher data using UID
+  Future<void> fetchCurrentTeacherData() async {
     try {
       isLoading.value = true;
 
@@ -118,24 +132,34 @@ class HomeController extends GetxController {
         return;
       }
 
-      // Fetch student data from Firestore
+      // Fetch current teacher data from Firestore using UID
       final docSnapshot = await _firestore
-          .collection('students')
+          .collection('teachers') // Assuming teachers collection
           .doc(uid)
           .get();
 
       if (docSnapshot.exists) {
         student.value = Student.fromMap(docSnapshot.data()!);
-        // Fetch leave applications after student data is loaded
-        // _fetchRecentLeaveApplications(uid);
+        print('✅ Current teacher loaded: ${student.value?.fullName}');
       } else {
-        Get.snackbar(
-          'Error',
-          'Student profile not found.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        // If not found in teachers, try students collection
+        final studentSnapshot = await _firestore
+            .collection('students')
+            .doc(uid)
+            .get();
+
+        if (studentSnapshot.exists) {
+          student.value = Student.fromMap(studentSnapshot.data()!);
+          print('✅ Current user loaded: ${student.value?.fullName}');
+        } else {
+          Get.snackbar(
+            'Error',
+            'User profile not found.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        }
       }
     } catch (e) {
       Get.snackbar(
@@ -145,64 +169,122 @@ class HomeController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      print('❌ Error fetching teacher data: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // // Fetch recent leave applications (last 5)
-  // void _fetchRecentLeaveApplications(String uid) {
-  //   try {
-  //     isLoadingLeaves.value = true;
+  // Fetch all students' leave applications using collection method
+  void fetchAllStudentsLeaveApplications() {
+    try {
+      isLoadingLeaves.value = true;
+      print(
+        '👨‍💼 Fetching all students leave applications for admin dashboard',
+      );
 
-  //     // Cancel previous subscription if exists
-  //     _leaveSubscription?.cancel();
+      // Cancel previous subscription if exists
+      _leaveSubscription?.cancel();
 
-  //     // Listen to user's leave applications
-  //     _leaveSubscription = _leaveService
-  //         .getUserLeaveApplications(uid)
-  //         .listen(
-  //           (leaveModels) {
-  //             // Convert LeaveModel to LeaveApplication and take only recent 5
-  //             final applications = leaveModels
-  //                 .take(5) // Get only the first 5 (most recent)
-  //                 .map((leave) => LeaveApplication.fromLeaveModel(leave))
-  //                 .toList();
+      // Get all students from CS department and their leave applications
+      _leaveSubscription = _firestore
+          .collection('students')
+          .where("department", isEqualTo: "CS")
+          .snapshots()
+          .asyncMap((studentSnapshot) async {
+            List<LeaveModel> allLeaves = [];
+            print(
+              '📋 Processing ${studentSnapshot.docs.length} students for admin view',
+            );
 
-  //             recentLeaveApplications.assignAll(applications);
-  //             isLoadingLeaves.value = false;
-  //           },
-  //           onError: (error) {
-  //             print('Error fetching leave applications: $error');
-  //             Get.snackbar(
-  //               'Error',
-  //               'Failed to load leave applications: $error',
-  //               snackPosition: SnackPosition.BOTTOM,
-  //               backgroundColor: Colors.red,
-  //               colorText: Colors.white,
-  //             );
-  //             isLoadingLeaves.value = false;
-  //           },
-  //         );
-  //   } catch (e) {
-  //     print('Error setting up leave applications stream: $e');
-  //     isLoadingLeaves.value = false;
-  //   }
-  // }
+            for (var studentDoc in studentSnapshot.docs) {
+              try {
+                var leaveSnapshot = await studentDoc.reference
+                    .collection('leave')
+                    .orderBy('submittedAt', descending: true)
+                    .limit(10) // Limit to recent 10 applications per student
+                    .get();
 
-  // Method to refresh student data and leave applications
+                if (leaveSnapshot.docs.isNotEmpty) {
+                  print(
+                    '📄 Processing ${leaveSnapshot.docs.length} leaves for ${studentDoc['fullName']}',
+                  );
+
+                  allLeaves.addAll(
+                    leaveSnapshot.docs.map((leaveDoc) {
+                      return LeaveModel.fromFirestore(leaveDoc).copyWith(
+                        id: leaveDoc.id, // Leave document ID
+                        uid: studentDoc.id, // Student ID
+                        fullName: studentDoc['fullName'],
+                        rollNumber: studentDoc['rollNumber'],
+                        department: studentDoc['department'],
+                        email: studentDoc['email'],
+                        phone: studentDoc['phone'],
+                        parentPhone: studentDoc['parentPhone'],
+                      );
+                    }).toList(),
+                  );
+                }
+              } catch (e) {
+                print('❌ Error processing student ${studentDoc.id}: $e');
+              }
+            }
+
+            // Sort all leaves by submission date (most recent first)
+            allLeaves.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+
+            print('✅ Total applications for admin view: ${allLeaves.length}');
+            return allLeaves;
+          })
+          .listen(
+            (allLeaves) {
+              // Convert LeaveModel to LeaveApplication
+              final applications = allLeaves.map((leave) {
+                return LeaveApplication.fromLeaveModel(leave);
+              }).toList();
+
+              // Update the reactive list
+              recentLeaveApplications.assignAll(applications);
+              isLoadingLeaves.value = false;
+
+              print(
+                '✅ Successfully loaded ${applications.length} leave applications for admin dashboard',
+              );
+            },
+            onError: (error) {
+              print('❌ Error fetching all students leave applications: $error');
+              Get.snackbar(
+                'Error',
+                'Failed to load leave applications: $error',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+              isLoadingLeaves.value = false;
+            },
+          );
+    } catch (e) {
+      print('❌ Error setting up all students leave applications stream: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to setup leave applications: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      isLoadingLeaves.value = false;
+    }
+  }
+
+  // Method to refresh teacher data and all students' leave applications
   Future<void> refreshStudentData() async {
-    await fetchStudentData();
+    await fetchCurrentTeacherData();
+    fetchAllStudentsLeaveApplications();
   }
 
   // Method to manually refresh only leave applications
   Future<void> refreshLeaveApplications() async {
-    final prefs = await SharedPreferences.getInstance();
-    final uid = prefs.getString('uid');
-
-    if (uid != null) {
-      // _fetchRecentLeaveApplications(uid);
-    }
+    fetchAllStudentsLeaveApplications();
   }
 
   void changeBottomNavIndex(int index) {
@@ -211,29 +293,14 @@ class HomeController extends GetxController {
 
   void LeaveRequests() {
     Get.to(LeaveRequestsScreen());
-    // Get.snackbar(
-    //   'Apply for Leave',
-    //   'Navigate to leave application form',
-    //   snackPosition: SnackPosition.BOTTOM,
-    // );
   }
 
   void onViewLeaveStatus() {
     Get.to(LeaveRequestsScreen());
-    // Get.snackbar(
-    //   'Leave Status',
-    //   'Navigate to leave status page',
-    //   snackPosition: SnackPosition.BOTTOM,
-    // );
   }
 
   void onMyProfile() {
     Get.to(ProfileScreen());
-    // Get.snackbar(
-    //   'My Profile',
-    //   'Navigate to profile page',
-    //   snackPosition: SnackPosition.BOTTOM,
-    // );
   }
 
   void onLogout() async {
@@ -245,16 +312,11 @@ class HomeController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      // Clear student data and leave applications
+      // Clear teacher data and leave applications
       student.value = null;
       recentLeaveApplications.clear();
 
       Get.to(LogoutPage());
-      // Get.snackbar(
-      //   'Logout',
-      //   'Logging out...',
-      //   snackPosition: SnackPosition.BOTTOM,
-      // );
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -266,8 +328,8 @@ class HomeController extends GetxController {
     }
   }
 
-  // Helper getters for easy access to student data
-  String get studentName => student.value?.fullName ?? 'Student';
+  // Helper getters for easy access to teacher data
+  String get studentName => student.value?.fullName ?? 'Teacher';
   String get studentDepartment => student.value?.department ?? 'Unknown';
   String get studentId => student.value?.rollNumber ?? 'N/A';
   String get studentEmail => student.value?.email ?? '';
@@ -275,4 +337,59 @@ class HomeController extends GetxController {
   String get studentSemester => student.value?.semester ?? '';
   String? get profileImageUrl => student.value?.profileImageUrl;
   bool get isProfileComplete => student.value?.profileComplete ?? false;
+
+  // Helper getters for leave applications (now for all students)
+  bool get hasRecentLeaves => recentLeaveApplications.isNotEmpty;
+  int get recentLeavesCount => recentLeaveApplications.length;
+
+  // Get leave statistics for display (all students)
+  Map<String, int> get leaveStats {
+    final stats = {
+      'total': recentLeaveApplications.length,
+      'approved': 0,
+      'pending': 0,
+      'rejected': 0,
+    };
+
+    for (final leave in recentLeaveApplications) {
+      switch (leave.status.toLowerCase()) {
+        case 'approved':
+          stats['approved'] = stats['approved']! + 1;
+          break;
+        case 'pending':
+          stats['pending'] = stats['pending']! + 1;
+          break;
+        case 'rejected':
+          stats['rejected'] = stats['rejected']! + 1;
+          break;
+      }
+    }
+
+    return stats;
+  }
+
+  // Get applications by status
+  List<LeaveApplication> getApplicationsByStatus(String status) {
+    return recentLeaveApplications
+        .where((app) => app.status.toLowerCase() == status.toLowerCase())
+        .toList();
+  }
+
+  // Get applications for a specific student
+  List<LeaveApplication> getApplicationsForStudent(String studentId) {
+    return recentLeaveApplications
+        .where((app) => app.studentId == studentId)
+        .toList();
+  }
+
+  // Get unique students who have applied for leaves
+  List<String> get uniqueStudents {
+    final students = <String>{};
+    for (final app in recentLeaveApplications) {
+      if (app.studentName != null) {
+        students.add(app.studentName!);
+      }
+    }
+    return students.toList();
+  }
 }

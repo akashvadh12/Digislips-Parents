@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.digislips"
+    namespace = "com.example.teacherapp.parents"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.digislips"
+        applicationId = "com.example.teacherapp.parents"
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

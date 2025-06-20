@@ -1,5 +1,6 @@
 import 'package:digislips/app/core/theme/app_them.dart';
 import 'package:digislips/app/modules/auth/login/login_page.dart';
+import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:digislips/app/modules/notification/notification_controller.dart';
 import 'package:digislips/app/routes/app_pages.dart';
 import 'package:digislips/app/shared/widgets/bottomnavigation/bottomnavigation.dart';
@@ -116,6 +117,7 @@ Future<void> main() async {
   String? uid = prefs.getString('uid');
 
   runApp(MyApp(isLoggedIn: uid != null));
+  Get.put(HomeController());
 }
 
 class MyApp extends StatelessWidget {

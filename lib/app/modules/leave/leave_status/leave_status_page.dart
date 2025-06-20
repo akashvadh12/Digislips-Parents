@@ -452,30 +452,10 @@ class LeaveRequestsScreen extends StatelessWidget {
           Text(
             leaveController.canApproveReject
                 ? 'Leave applications will appear here once submitted'
-                : 'Your leave requests will be displayed here',
+                : 'Leave applications will appear here once submitted',
             style: AppTextStyles.body.copyWith(color: AppColors.greyColor),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
-          if (!leaveController.canApproveReject)
-            ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to create leave request
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Create New Request'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -487,17 +467,31 @@ class LeaveRequestsScreen extends StatelessWidget {
     leaveController,
   ) {
     final dateFormat = DateFormat('MMM dd, yyyy');
+    final timeFormat = DateFormat('hh:mm a');
 
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 500),
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Enhanced Header
+              // Professional Header with Status Badge
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -505,45 +499,161 @@ class LeaveRequestsScreen extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      _getStatusColor(request.status).withOpacity(0.1),
-                      _getStatusColor(request.status).withOpacity(0.05),
+                      _getStatusColor(request.status).withOpacity(0.08),
+                      _getStatusColor(request.status).withOpacity(0.03),
                     ],
                   ),
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200, width: 1),
                   ),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(
-                          request.status,
-                        ).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        _getLeaveTypeIcon(request.leaveType),
-                        color: _getStatusColor(request.status),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Leave Application Details',
-                            style: AppTextStyles.title.copyWith(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
+                    Row(
+                      children: [
+                        // Leave Type Icon
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(
+                              request.status,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _getStatusColor(
+                                request.status,
+                              ).withOpacity(0.2),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          StatusChip(status: request.status),
+                          child: Icon(
+                            _getLeaveTypeIcon(request.leaveType),
+                            color: _getStatusColor(request.status),
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+
+                        // Title and Status
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Leave Application',
+                                style: AppTextStyles.title.copyWith(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.blackColor,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(request.status),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: _getStatusColor(
+                                            request.status,
+                                          ).withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      request.status.toUpperCase(),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    request.leaveType,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: AppColors.greyColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Close Button
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.grey.shade100,
+                            foregroundColor: AppColors.greyColor,
+                            padding: const EdgeInsets.all(8),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Duration Summary Card
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${dateFormat.format(request.fromDate)} - ${dateFormat.format(request.toDate)}',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.blackColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${request.totalDays} ${request.totalDays == 1 ? 'day' : 'days'} leave',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.greyColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -551,29 +661,88 @@ class LeaveRequestsScreen extends StatelessWidget {
                 ),
               ),
 
-              // Enhanced Content
+              // Scrollable Content
               Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildEnhancedDetailSection('Application Information', [
-                        _buildDetailRow('Leave Type', request.leaveType),
-                        if (request.fullName != null &&
-                            request.fullName!.isNotEmpty)
-                          _buildDetailRow('Student Name', request.fullName!),
-                        if (request.rollNumber != null &&
-                            request.rollNumber!.isNotEmpty)
-                          _buildDetailRow('Roll Number', request.rollNumber!),
-                        if (request.department != null &&
-                            request.department!.isNotEmpty)
-                          _buildDetailRow('Department', request.department!),
-                        if (request.semester != null &&
-                            request.semester!.isNotEmpty)
-                          _buildDetailRow('Semester', request.semester!),
-                      ]),
+                      // Student Information (if applicable)
+                      if (leaveController.canApproveReject)
+                        _buildProfessionalDetailSection(
+                          'Student Information',
+                          Icons.person_rounded,
+                          AppColors.primary,
+                          [
+                            if (request.fullName != null &&
+                                request.fullName!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Full Name',
+                                request.fullName!,
+                              ),
+                            if (request.rollNumber != null &&
+                                request.rollNumber!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Roll Number',
+                                request.rollNumber!,
+                              ),
+                            if (request.department != null &&
+                                request.department!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Department',
+                                request.department!,
+                              ),
+                            if (request.semester != null &&
+                                request.semester!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Semester',
+                                request.semester!,
+                              ),
+                          ],
+                        ),
 
+                      // Leave Details
+                      _buildProfessionalDetailSection(
+                        'Leave Details',
+                        Icons.event_note_rounded,
+                        AppColors.success,
+                        [
+                          _buildProfessionalDetailRow(
+                            'Leave Type',
+                            request.leaveType,
+                          ),
+                          _buildProfessionalDetailRow(
+                            'Duration',
+                            '${request.totalDays} ${request.totalDays == 1 ? 'day' : 'days'}',
+                          ),
+                          _buildProfessionalDetailRow(
+                            'From Date',
+                            dateFormat.format(request.fromDate),
+                          ),
+                          _buildProfessionalDetailRow(
+                            'To Date',
+                            dateFormat.format(request.toDate),
+                          ),
+                          if (request.reason.isNotEmpty)
+                            _buildProfessionalDetailRow(
+                              'Reason',
+                              request.reason,
+                            ),
+                          if (request.destination.isNotEmpty)
+                            _buildProfessionalDetailRow(
+                              'Destination',
+                              request.destination,
+                            ),
+                          if (request.travelMode.isNotEmpty)
+                            _buildProfessionalDetailRow(
+                              'Travel Mode',
+                              request.travelMode,
+                            ),
+                        ],
+                      ),
+
+                      // Contact Information
                       if ((request.email != null &&
                               request.email!.isNotEmpty) ||
                           (request.phone != null &&
@@ -582,91 +751,125 @@ class LeaveRequestsScreen extends StatelessWidget {
                               request.parentEmail!.isNotEmpty) ||
                           (request.parentPhone != null &&
                               request.parentPhone!.isNotEmpty))
-                        _buildEnhancedDetailSection('Contact Information', [
-                          if (request.email != null &&
-                              request.email!.isNotEmpty)
-                            _buildDetailRow('Email', request.email!),
-                          if (request.phone != null &&
-                              request.phone!.isNotEmpty)
-                            _buildDetailRow('Phone', request.phone!),
-                          if (request.parentEmail != null &&
-                              request.parentEmail!.isNotEmpty)
-                            _buildDetailRow(
-                              'Parent Email',
-                              request.parentEmail!,
-                            ),
-                          if (request.parentPhone != null &&
-                              request.parentPhone!.isNotEmpty)
-                            _buildDetailRow(
-                              'Parent Phone',
-                              request.parentPhone!,
-                            ),
-                        ]),
+                        _buildProfessionalDetailSection(
+                          'Contact Information',
+                          Icons.contact_phone_rounded,
+                          AppColors.warning,
+                          [
+                            if (request.email != null &&
+                                request.email!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Email',
+                                request.email!,
+                              ),
+                            if (request.phone != null &&
+                                request.phone!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Phone',
+                                request.phone!,
+                              ),
+                            if (request.parentEmail != null &&
+                                request.parentEmail!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Parent Email',
+                                request.parentEmail!,
+                              ),
+                            if (request.parentPhone != null &&
+                                request.parentPhone!.isNotEmpty)
+                              _buildProfessionalDetailRow(
+                                'Parent Phone',
+                                request.parentPhone!,
+                              ),
+                          ],
+                        ),
 
-                      _buildEnhancedDetailSection('Leave Details', [
-                        _buildDetailRow(
-                          'Duration',
-                          '${request.totalDays} ${request.totalDays == 1 ? 'day' : 'days'}',
-                        ),
-                        _buildDetailRow(
-                          'From Date',
-                          dateFormat.format(request.fromDate),
-                        ),
-                        _buildDetailRow(
-                          'To Date',
-                          dateFormat.format(request.toDate),
-                        ),
-                        if (request.reason.isNotEmpty)
-                          _buildDetailRow('Reason', request.reason),
-                        if (request.destination.isNotEmpty)
-                          _buildDetailRow('Destination', request.destination),
-                        if (request.travelMode.isNotEmpty)
-                          _buildDetailRow('Travel Mode', request.travelMode),
-                      ]),
+                      // Application Status
+                      _buildProfessionalDetailSection(
+                        'Application Status',
+                        Icons.assignment_turned_in_rounded,
+                        _getStatusColor(request.status),
+                        [
+                          _buildProfessionalDetailRow(
+                            'Status',
+                            request.status.toUpperCase(),
+                          ),
+                          _buildProfessionalDetailRow(
+                            'Submitted On',
+                            dateFormat.format(request.submittedAt),
+                          ),
+                          if (request.submittedBy.isNotEmpty)
+                            _buildProfessionalDetailRow(
+                              'Submitted By',
+                              request.fullName ?? request.submittedBy,
+                            ),
+                          if (request.reviewedBy != null &&
+                              request.reviewedBy!.isNotEmpty)
+                            _buildProfessionalDetailRow(
+                              'Reviewed By',
+                              request.reviewedBy!,
+                            ),
+                          if (request.reviewedAt != null)
+                            _buildProfessionalDetailRow(
+                              'Reviewed On',
+                              dateFormat.format(request.reviewedAt!),
+                            ),
+                          if (request.reviewComments != null &&
+                              request.reviewComments!.isNotEmpty)
+                            _buildProfessionalDetailRow(
+                              'Review Comments',
+                              request.reviewComments!,
+                            ),
+                        ],
+                      ),
 
-                      _buildEnhancedDetailSection('Submission Details', [
-                        _buildDetailRow(
-                          'Submitted On',
-                          dateFormat.format(request.submittedAt),
+                      // Documents (if any)
+                      if (request.documentUrls.isNotEmpty)
+                        _buildProfessionalDetailSection(
+                          'Attachments',
+                          Icons.attach_file_rounded,
+                          AppColors.primary,
+                          [
+                            _buildProfessionalDetailRow(
+                              'Documents',
+                              '${request.documentUrls.length} ${request.documentUrls.length == 1 ? 'document' : 'documents'} attached',
+                            ),
+                          ],
                         ),
-                        if (request.submittedBy.isNotEmpty)
-                          _buildDetailRow('Submitted By', request.submittedBy),
-                        if (request.reviewedBy != null &&
-                            request.reviewedBy!.isNotEmpty)
-                          _buildDetailRow('Reviewed By', request.reviewedBy!),
-                        if (request.reviewedAt != null)
-                          _buildDetailRow(
-                            'Reviewed On',
-                            dateFormat.format(request.reviewedAt!),
-                          ),
-                        if (request.reviewComments != null &&
-                            request.reviewComments!.isNotEmpty)
-                          _buildDetailRow(
-                            'Review Comments',
-                            request.reviewComments!,
-                          ),
-                        if (request.documentUrls.isNotEmpty)
-                          _buildDetailRow(
-                            'Documents',
-                            '${request.documentUrls.length} ${request.documentUrls.length == 1 ? 'document' : 'documents'} attached',
-                          ),
-                      ]),
                     ],
                   ),
                 ),
               ),
 
-              // Enhanced Footer
+              // Action Footer - Keep original button functionality
               Container(
                 padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () {
+                        Navigator.of(context).pop();
                         leaveController.showApprovalDialog(request);
-                        print("Approve/reject");
                       },
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                       child: const Text("Approve/Reject"),
                     ),
                   ],
@@ -675,6 +878,97 @@ class LeaveRequestsScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfessionalDetailSection(
+    String title,
+    IconData icon,
+    Color color,
+    List<Widget> children,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: AppTextStyles.title.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.blackColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Section Content
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(children: children),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfessionalDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.greyColor,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.blackColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
