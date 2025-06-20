@@ -121,8 +121,8 @@ class RegistrationScreen extends StatelessWidget {
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
-                                    value: controller.selectedRole.value.isEmpty 
-                                        ? null 
+                                    value: controller.selectedRole.value.isEmpty
+                                        ? null
                                         : controller.selectedRole.value,
                                     isExpanded: true,
                                     hint: Text(
@@ -189,7 +189,9 @@ class RegistrationScreen extends StatelessWidget {
                                     SizedBox(height: 8),
                                     Container(
                                       width: double.infinity,
-                                      padding: EdgeInsets.symmetric(horizontal: 16),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
                                           color: AppColors.lightGrey,
@@ -199,9 +201,15 @@ class RegistrationScreen extends StatelessWidget {
                                       ),
                                       child: DropdownButtonHideUnderline(
                                         child: DropdownButton<String>(
-                                          value: controller.selectedDepartment.value.isEmpty
+                                          value:
+                                              controller
+                                                  .selectedDepartment
+                                                  .value
+                                                  .isEmpty
                                               ? null
-                                              : controller.selectedDepartment.value,
+                                              : controller
+                                                    .selectedDepartment
+                                                    .value,
                                           isExpanded: true,
                                           hint: Text(
                                             'Select Department',
@@ -212,7 +220,9 @@ class RegistrationScreen extends StatelessWidget {
                                             color: Colors.black,
                                             fontWeight: FontWeight.w400,
                                           ),
-                                          items: controller.departments.map((String value) {
+                                          items: controller.departments.map((
+                                            String value,
+                                          ) {
                                             return DropdownMenuItem<String>(
                                               value: value,
                                               child: Text(value),
@@ -220,7 +230,10 @@ class RegistrationScreen extends StatelessWidget {
                                           }).toList(),
                                           onChanged: (String? newValue) {
                                             if (newValue != null) {
-                                              controller.selectedDepartment.value = newValue;
+                                              controller
+                                                      .selectedDepartment
+                                                      .value =
+                                                  newValue;
                                             }
                                           },
                                         ),
@@ -231,13 +244,15 @@ class RegistrationScreen extends StatelessWidget {
                                 SizedBox(height: 20),
                               ],
                             );
-                          } else if (controller.selectedRole.value == 'Parent') {
+                          } else if (controller.selectedRole.value ==
+                              'Parent') {
                             return Column(
                               children: [
                                 // Student Roll Number for Parent
                                 _buildInputField(
                                   label: 'Student Roll Number',
-                                  controller: controller.studentRollNumberController,
+                                  controller:
+                                      controller.studentRollNumberController,
                                   hintText: 'Enter student roll number',
                                 ),
                                 SizedBox(height: 20),

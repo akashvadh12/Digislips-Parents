@@ -14,6 +14,11 @@ class LoginController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
+  
+  // Role selection variables
+  final selectedRole = Rx<String?>(null);
+  final isParent = false.obs;
+  final isTeacher = false.obs;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -27,11 +32,26 @@ class LoginController extends GetxController {
   Future<void> _checkIfLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     final uid = prefs.getString('uid');
+    final userRole = prefs.getString('userRole');
 
-    if (uid != null && _auth.currentUser != null) {
-      // If UID exists and session is valid
+    if (uid != null && _auth.currentUser != null && userRole != null) {
+      // If UID exists, session is valid, and role is stored
+      selectedRole.value = userRole;
+      _updateRoleFlags(userRole);
       Get.offAll(() => BottomNavBarWidget());
     }
+  }
+
+  // Role selection method
+  void selectRole(String role) {
+    selectedRole.value = role;
+    _updateRoleFlags(role);
+  }
+
+  // Update role flags
+  void _updateRoleFlags(String role) {
+    isParent.value = role == 'Parent';
+    isTeacher.value = role == 'Teacher';
   }
 
   // Toggle password visibility
@@ -61,8 +81,22 @@ class LoginController extends GetxController {
     return null;
   }
 
-  // Login method with form validation
+  // Role validation
+  String? validateRole() {
+    if (selectedRole.value == null) {
+      return 'Please select your role';
+    }
+    return null;
+  }
+
+  // Login method with form validation and role check
   Future<void> login() async {
+    // Validate role first
+    if (selectedRole.value == null) {
+      _showSnackbar('Error', 'Please select your role (Parent or Teacher)');
+      return;
+    }
+
     if (!formKey.currentState!.validate()) return;
 
     isLoading(true);
@@ -78,11 +112,16 @@ class LoginController extends GetxController {
       if (userCredential.user != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('uid', userCredential.user!.uid);
+        
+        // Store user role in SharedPreferences
+        await prefs.setString('userRole', selectedRole.value!);
+        await prefs.setBool('isParent', isParent.value);
+        await prefs.setBool('isTeacher', isTeacher.value);
 
         // Navigate to dashboard and remove login from stack
         Get.offAllNamed(Routes.BOTTOM_NAVIGATION);
 
-        _showSnackbar('Success', 'Login successful!', isSuccess: true);
+        _showSnackbar('Success', 'Login successful as ${selectedRole.value}!', isSuccess: true);
       }
     } on FirebaseAuthException catch (e) {
       _handleFirebaseError(e);
@@ -115,10 +154,17 @@ class LoginController extends GetxController {
     }
   }
 
-  // Navigate to registration screen
+  // Navigate to registration screen (only for parents)
   void navigateToSignUp() {
-    Get.to(() => RegistrationScreen());
+    if (isParent.value) {
+      Get.to(() => RegistrationScreen());
+    } else {
+      _showSnackbar('Info', 'Only parents can sign up. Teachers should contact administration.');
+    }
   }
+
+  // Check if signup should be visible (only for parents)
+  bool get shouldShowSignup => isParent.value;
 
   // Error display helper
   void _showSnackbar(String title, String message, {bool isSuccess = false}) {
