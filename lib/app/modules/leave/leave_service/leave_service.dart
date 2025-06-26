@@ -1,5 +1,6 @@
 // app/services/leave_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:digislips/app/modules/leave/leave_model/leave_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -70,53 +71,95 @@ class LeaveService {
   }
 
   // New method specifically for admin/teacher role to get all leave applications
-  Stream<List<LeaveModel>> getAllLeaveApplicationsForRole() {
-    print('👨‍💼 Fetching all leave applications for admin/teacher role');
+  Stream<List<LeaveModel>> getAllLeaveApplicationsForRole() async* {
+    print(
+      '👨‍💼 Fetching all leave applications for admin/teacher/parent role',
+    );
+    final HomeController homeController = Get.find<HomeController>();
+    print(" this is parent value 😁😁😁${homeController.isParent.value}");
+    if (homeController.isParent.value) {
+      final studentData = homeController.parentStudentData.value;
+      final studentId = studentData?['studentId'];
 
-    return _firestore
-        .collection('students')
-        .where("department", isEqualTo: "CS")
-        .snapshots()
-        .asyncMap((studentSnapshot) async {
-          List<LeaveModel> allLeaves = [];
-          print(
-            '📋 Processing ${studentSnapshot.docs.length} students for admin view',
-          );
+      if (studentId == null) {
+        print('❌ No student ID found for parent');
+        yield [];
+        return;
+      }
 
-          for (var studentDoc in studentSnapshot.docs) {
+      yield* _firestore
+          .collection('students')
+          .doc(studentId)
+          .collection('leave')
+          .orderBy('submittedAt', descending: true)
+          .snapshots()
+          .map((snapshot) {
             try {
-              var leaveSnapshot = await studentDoc.reference
-                  .collection('leave')
-                  .orderBy('submittedAt', descending: true)
-                  .get();
-
-              if (leaveSnapshot.docs.isNotEmpty) {
-                print(
-                  '📄 Processing ${leaveSnapshot.docs.length} leaves for ${studentDoc['fullName']}',
+              final leaves = snapshot.docs.map((doc) {
+                return LeaveModel.fromFirestore(doc).copyWith(
+                  id: doc.id,
+                  uid: studentId,
+                  fullName: studentData?['fullName'],
+                  rollNumber: studentData?['rollNumber'],
+                  department: studentData?['department'],
+                  email: studentData?['email'],
+                  phone: studentData?['phone'],
+                  parentPhone: studentData?['parentPhone'],
                 );
+              }).toList();
 
-                allLeaves.addAll(
-                  leaveSnapshot.docs.map((leaveDoc) {
-                    return LeaveModel.fromFirestore(leaveDoc).copyWith(
-                      uid: studentDoc.id,
-                      fullName: studentDoc['fullName'],
-                      rollNumber: studentDoc['rollNumber'],
-                      department: studentDoc['department'],
-                      email: studentDoc['email'],
-                      phone: studentDoc['phone'],
-                      parentPhone: studentDoc['parentPhone'],
-                    );
-                  }).toList(),
-                );
-              }
+              print('✅ Loaded ${leaves.length} leaves for parent');
+              return leaves;
             } catch (e) {
-              print('❌ Error processing student ${studentDoc.id}: $e');
+              print('❌ Error mapping leaves: $e');
+              Get.snackbar(
+                'Error',
+                'Failed to process leave data',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+              return <LeaveModel>[];
             }
-          }
+          });
+    } else {
+      yield* _firestore
+          .collection('students')
+          .where("department", isEqualTo: "CS")
+          .snapshots()
+          .asyncMap((studentSnapshot) async {
+            List<LeaveModel> allLeaves = [];
 
-          print('✅ Total applications for admin view: ${allLeaves.length}');
-          return allLeaves;
-        });
+            for (var studentDoc in studentSnapshot.docs) {
+              try {
+                final leaveSnapshot = await studentDoc.reference
+                    .collection('leave')
+                    .orderBy('submittedAt', descending: true)
+                    .get();
+
+                final studentInfo = studentDoc.data();
+                allLeaves.addAll(
+                  leaveSnapshot.docs.map((doc) {
+                    return LeaveModel.fromFirestore(doc).copyWith(
+                      uid: studentDoc.id,
+                      fullName: studentInfo['fullName'],
+                      rollNumber: studentInfo['rollNumber'],
+                      department: studentInfo['department'],
+                      email: studentInfo['email'],
+                      phone: studentInfo['phone'],
+                      parentPhone: studentInfo['parentPhone'],
+                    );
+                  }),
+                );
+              } catch (e) {
+                print('❌ Error processing student ${studentDoc.id}: $e');
+              }
+            }
+
+            print('✅ Total applications for admin view: ${allLeaves.length}');
+            return allLeaves;
+          });
+    }
   }
 
   // Get all pending leave applications with student details

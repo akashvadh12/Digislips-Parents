@@ -47,7 +47,7 @@ class LeaveController extends GetxController {
     // If user is student, get only their applications
     Stream<List<LeaveModel>> leaveStream;
 
-    if (userRole.value == 'admin' || userRole.value == 'teacher') {
+    if (userRole.value == 'Parent' || userRole.value == 'teacher') {
       print('👨‍💼 Fetching all leave applications for admin/teacher');
       leaveStream = _leaveService.getAllLeaveApplicationsForRole();
     } else {

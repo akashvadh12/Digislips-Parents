@@ -268,38 +268,38 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'ID: ${controller.studentId}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        // const SizedBox(width: 8),
+                        // Flexible(
+                        //   child: Text(
+                        //     'ID: ${controller.studentId}',
+                        //     style: TextStyle(
+                        //       fontSize: 12,
+                        //       color: Colors.grey[600],
+                        //       fontWeight: FontWeight.w500,
+                        //     ),
+                        //     overflow: TextOverflow.ellipsis,
+                        //   ),
+                        // ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      controller.department,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      controller.semester,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
+                    // const SizedBox(height: 6),
+                    // Text(
+                    //   controller.department,
+                    //   style: TextStyle(
+                    //     fontSize: 14,
+                    //     color: Colors.grey[700],
+                    //     fontWeight: FontWeight.w500,
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 4),
+                    // Text(
+                    //   controller.semester,
+                    //   style: TextStyle(
+                    //     fontSize: 12,
+                    //     color: Colors.grey[600],
+                    //     fontWeight: FontWeight.w400,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

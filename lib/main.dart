@@ -116,8 +116,8 @@ Future<void> main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String? uid = prefs.getString('uid');
 
-  runApp(MyApp(isLoggedIn: uid != null));
   Get.put(HomeController());
+  runApp(MyApp(isLoggedIn: uid != null));
 }
 
 class MyApp extends StatelessWidget {

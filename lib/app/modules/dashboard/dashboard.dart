@@ -48,7 +48,7 @@ class HomeView extends GetView<HomeController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Good Morning! 👋',
+                            controller.greetingWithEmoji,
                             style: AppTextStyles.welcomeTitle.copyWith(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -59,7 +59,7 @@ class HomeView extends GetView<HomeController> {
                             () => Text(
                               controller.isLoading.value
                                   ? 'Loading...'
-                                  : controller.studentName,
+                                  : controller.currentUserName,
                               style: AppTextStyles.welcomeTitle.copyWith(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -123,7 +123,7 @@ class HomeView extends GetView<HomeController> {
                           ),
                         )
                       : RefreshIndicator(
-                          onRefresh: controller.refreshStudentData,
+                          onRefresh: controller.refreshLeaveApplications,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(14),
@@ -294,59 +294,8 @@ class HomeView extends GetView<HomeController> {
 
                                 const SizedBox(height: 32),
 
-                                // Enhanced Action Cards Grid
-                                GridView.count(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                  childAspectRatio: 1,
-                                  children: [
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.assignment,
-                                      title: 'Leave Request',
-                                      subtitle: 'View Leave Requests',
-                                      gradient: [
-                                        Colors.blue[400]!,
-                                        Colors.blue[600]!,
-                                      ],
-                                      onTap: controller.LeaveRequests,
-                                    ),
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.phone,
-                                      title: 'Phone',
-                                      subtitle: 'Contact Parent',
-                                      gradient: [
-                                        Colors.green[400]!,
-                                        Colors.green[600]!,
-                                      ],
-                                      onTap: () {
-                                        Get.to(ContactScreen());
-                                      },
-                                    ),
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.person_outline_rounded,
-                                      title: 'My Profile',
-                                      subtitle: 'View & edit profile',
-                                      gradient: [
-                                        Colors.purple[400]!,
-                                        Colors.purple[600]!,
-                                      ],
-                                      onTap: controller.onMyProfile,
-                                    ),
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.logout_rounded,
-                                      title: 'Logout',
-                                      subtitle: 'Sign out safely',
-                                      gradient: [
-                                        Colors.red[400]!,
-                                        Colors.red[600]!,
-                                      ],
-                                      onTap: controller.onLogout,
-                                    ),
-                                  ],
-                                ),
+                                // Enhanced Action Cards Grid with Role-based Visibility
+                                Obx(() => _buildActionCardsGrid()),
 
                                 const SizedBox(height: 32),
 
@@ -481,6 +430,75 @@ class HomeView extends GetView<HomeController> {
           ],
         ),
       ),
+    );
+  }
+
+  // Build Action Cards Grid with Role-based Visibility
+  Widget _buildActionCardsGrid() {
+    List<Widget> actionCards = [];
+
+    // Always show Leave Request card
+    actionCards.add(
+      _buildEnhancedActionCard(
+        icon: Icons.assignment,
+        title: 'Leave Request',
+        subtitle: 'View Leave Requests',
+        gradient: [Colors.blue[400]!, Colors.blue[600]!],
+        onTap: controller.LeaveRequests,
+      ),
+    );
+
+    // Show Phone card only for teachers
+    if (controller.isCurrentUserTeacher) {
+      actionCards.add(
+        _buildEnhancedActionCard(
+          icon: Icons.phone,
+          title: 'Phone',
+          subtitle: 'Contact Parent',
+          gradient: [Colors.green[400]!, Colors.green[600]!],
+          onTap: () {
+            Get.to(ContactScreen());
+          },
+        ),
+      );
+    }
+
+    // Always show My Profile card
+    actionCards.add(
+      _buildEnhancedActionCard(
+        icon: Icons.person_outline_rounded,
+        title: 'My Profile',
+        subtitle: 'View & edit profile',
+        gradient: [Colors.purple[400]!, Colors.purple[600]!],
+        onTap: controller.onMyProfile,
+      ),
+    );
+
+    // Show Logout card only for teachers
+    if (controller.isCurrentUserTeacher) {
+      actionCards.add(
+        _buildEnhancedActionCard(
+          icon: Icons.logout_rounded,
+          title: 'Logout',
+          subtitle: 'Sign out safely',
+          gradient: [Colors.red[400]!, Colors.red[600]!],
+          onTap: controller.onLogout,
+        ),
+      );
+    }
+
+    // Determine grid layout based on number of cards
+    int crossAxisCount = actionCards.length == 2 ? 2 : 2;
+    double childAspectRatio = actionCards.length == 2 ? 1.2 : 1;
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: crossAxisCount,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: childAspectRatio,
+      children: actionCards,
     );
   }
 

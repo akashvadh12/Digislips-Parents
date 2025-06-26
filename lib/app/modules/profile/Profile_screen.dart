@@ -30,12 +30,12 @@ class ProfileScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(5),
                   child: Obx(() {
                     if (controller.isLoading.value &&
-                        controller.student.value == null) {
+                        controller.currentUser.value == null) {
                       return _buildLoadingState();
                     }
 
                     if (controller.hasError.value &&
-                        controller.student.value == null) {
+                        controller.currentUser.value == null) {
                       return _buildErrorState();
                     }
 
@@ -197,7 +197,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     if (!controller.isEditingProfile.value &&
-                        controller.student.value != null)
+                        controller.currentUser.value != null)
                       Padding(
                         padding: EdgeInsets.only(top: 4),
                         child: Text(
@@ -241,21 +241,21 @@ class ProfileScreen extends StatelessWidget {
                 )
               else
                 GestureDetector(
-                  onTap: controller.student.value != null
+                  onTap: controller.currentUser.value != null
                       ? controller.startEditingProfile
                       : null,
                   child: Container(
                     padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(
-                        controller.student.value != null ? 0.2 : 0.1,
+                        controller.currentUser.value != null ? 0.2 : 0.1,
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.edit_outlined,
                       color: Colors.white.withOpacity(
-                        controller.student.value != null ? 1.0 : 0.5,
+                        controller.currentUser.value != null ? 1.0 : 0.5,
                       ),
                       size: 20,
                     ),
@@ -281,6 +281,12 @@ class ProfileScreen extends StatelessWidget {
               Icons.person_outline,
               'Full Name',
               controller.fullName,
+              AppColors.primary,
+            ),
+            _buildInfoRow(
+              Icons.person_outline,
+              'Child',
+              controller.childName,
               AppColors.primary,
             ),
             _buildInfoRow(
@@ -336,6 +342,7 @@ class ProfileScreen extends StatelessWidget {
               Icons.person_outline,
               AppColors.primary,
             ),
+
             SizedBox(height: 16),
             _buildReadOnlyField(
               'Email',
@@ -354,25 +361,24 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
 
-        SizedBox(height: 20),
+        // SizedBox(height: 20),
 
-        // Academic Information Edit Card
-        _buildEditCard(
-          title: 'Academic Information',
-          icon: Icons.school_outlined,
-          children: [
-            _buildEditField(
-              'Department',
-              controller.departmentController,
-              Icons.school_outlined,
-              AppColors.primary,
-            ),
-            SizedBox(height: 16),
+        // // Academic Information Edit Card
+        // _buildEditCard(
+        //   title: 'Academic Information',
+        //   icon: Icons.school_outlined,
+        //   children: [
+        //     _buildEditField(
+        //       'Department',
+        //       controller.departmentController,
+        //       Icons.school_outlined,
+        //       AppColors.primary,
+        //     ),
+        //     SizedBox(height: 16),
 
-            SizedBox(height: 16),
-          ],
-        ),
-
+        //     SizedBox(height: 16),
+        //   ],
+        // ),
         SizedBox(height: 32),
         _buildEditActions(),
       ],
@@ -599,7 +605,7 @@ class ProfileScreen extends StatelessWidget {
           _buildActionButton(
             icon: Icons.edit_outlined,
             label: 'Edit Profile',
-            onTap: controller.student.value != null
+            onTap: controller.currentUser.value != null
                 ? controller.startEditingProfile
                 : () {},
             color: AppColors.primary,

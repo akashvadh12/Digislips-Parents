@@ -18,9 +18,15 @@ class ProfileController extends GetxController {
   // Firestore and Storage instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
- 
-  // Observable student data
-  var student = Rxn<Student>();
+
+  // User data observables
+  var currentUser =
+      Rxn<Map<String, dynamic>>(); // Changed to Map for better handling
+  var userRole = ''.obs;
+  var userUid = ''.obs;
+  var userEmail = ''.obs;
+  var isParent = false.obs;
+  var isTeacher = false.obs;
 
   // Loading states
   var isLoading = false.obs;
@@ -33,9 +39,12 @@ class ProfileController extends GetxController {
   final fullNameController = TextEditingController();
   final phoneController = TextEditingController();
   final departmentController = TextEditingController();
+  final subjectController = TextEditingController();
+ 
+  final childClassController = TextEditingController();
+  final employeeIdController = TextEditingController();
 
-
-  // Available departments (you can customize this)
+  // Available departments and subjects (for teachers)
   final List<String> availableDepartments = [
     'Computer Science',
     'Information Technology',
@@ -44,25 +53,45 @@ class ProfileController extends GetxController {
     'Civil',
     'Electrical',
     'Chemical',
+    'Mathematics',
+    'Physics',
+    'Chemistry',
+    'English',
     'Others',
   ];
 
-  // Getters for easy access to student data
-  String get fullName => student.value?.fullName ?? 'Loading...';
-  String get role => 'Student';
-  String get department => student.value?.department ?? 'Loading...';
-  String get studentId => student.value?.rollNumber ?? 'Loading...';
-  String get email => student.value?.email ?? 'Loading...';
-  String get phone => student.value?.phone ?? 'Loading...';
-  String get parentPhone => student.value?.parentPhone ?? 'Not provided';
-  String get parentEmail => student.value?.parentEmail ?? 'Not provided';
-  String get semester => student.value?.semester ?? '1st Semester';
-  String? get profileImageUrl => student.value?.profileImageUrl;
+  final List<String> availableSubjects = [
+    'Programming',
+    'Data Structures',
+    'Database Management',
+    'Web Development',
+    'Mobile Development',
+    'Mathematics',
+    'Physics',
+    'Chemistry',
+    'English',
+    'Others',
+  ];
+
+  // Getters for easy access to user data
+  String get fullName => _getFullName();
+  String get role => userRole.value.capitalize ?? 'User';
+  String get department => _getDepartment();
+  String get phone => _getPhone();
+  String get email =>
+      userEmail.value.isNotEmpty ? userEmail.value : 'Loading...';
+  String? get profileImageUrl => _getProfileImageUrl();
+
+  // Role-specific getters
+  String get subject => _getSubject(); // For teachers
+  String get employeeId => _getEmployeeId(); // For teachers
+  String get childName => _getChildName(); // For parents
+  String get childClass => _getChildClass(); // For parents
 
   @override
   void onInit() {
     super.onInit();
-    fetchStudentData();
+    getUserDetailsFromPrefs();
   }
 
   @override
@@ -70,50 +99,180 @@ class ProfileController extends GetxController {
     fullNameController.dispose();
     phoneController.dispose();
     departmentController.dispose();
+    subjectController.dispose();
+ 
+    childClassController.dispose();
+    employeeIdController.dispose();
     super.onClose();
   }
 
-  // Fetch student data from Firestore
-  Future<void> fetchStudentData() async {
+  // Get user details from shared preferences
+  Future<void> getUserDetailsFromPrefs() async {
     try {
       isLoading.value = true;
-      hasError.value = false;
-
       final prefs = await SharedPreferences.getInstance();
-      final uid = prefs.getString('uid');
+
+      // Get stored values
+      String? uid = prefs.getString('uid');
+      String? role = prefs.getString('userRole');
+      bool? parentFlag = prefs.getBool('isParent');
+      bool? teacherFlag = prefs.getBool('isTeacher');
+      String? emailPref = prefs.getString('Email');
+
+      print("Email is 😁😁👌 $emailPref");
+      print('UID😁😁😁👍: $uid');
+      print('Role😊👌👌: $role');
+      print('Is Parent😁: $parentFlag');
+      print('Is Teacher😁: $teacherFlag');
 
       if (uid == null || uid.isEmpty) {
         throw Exception('No user ID found. Please login again.');
       }
 
-      // Get profile data from Firestore
-      final doc = await _firestore.collection('students').doc(uid).get();
+      // Set observable values
+      userUid.value = uid;
+      userRole.value = role ?? '';
+      userEmail.value = emailPref ?? '';
+      isParent.value = parentFlag ?? false;
+      isTeacher.value = teacherFlag ?? false;
 
-      if (doc.exists && doc.data() != null) {
-        Student firestoreStudent = Student.fromMap(doc.data()!);
-
-        // Get profile image URL from Realtime Database
-        final DatabaseReference dbRef = FirebaseDatabase.instance.ref().child(
-          'profile_images/$uid',
-        );
-        final DataSnapshot snapshot = await dbRef.get();
-
-        String? imageUrl;
-        if (snapshot.exists && snapshot.value != null) {
-          imageUrl = snapshot.value.toString();
-        }
-
-        // Update student model with image URL from Realtime DB
-        student.value = firestoreStudent.copyWith(profileImageUrl: imageUrl);
-
-        _populateEditControllers();
+      // Use the appropriate fetch method based on role
+      if (isTeacher.value) {
+        await fetchCurrentTeacherData();
       } else {
-        throw Exception('Student data not found');
+        await fetchCurrentUserData(); // This will handle parents and other roles
       }
     } catch (e) {
       hasError.value = true;
       errorMessage.value = e.toString();
-      print('Error fetching student data: $e');
+      print('Error getting user details from prefs: $e');
+      _showErrorSnackbar('Error', 'Failed to load user data: ${e.toString()}');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Fetch user data from Firestore based on role
+  Future<void> fetchUserData() async {
+    try {
+      isLoading.value = true;
+      hasError.value = false;
+
+      if (userUid.value.isEmpty) {
+        throw Exception('User not found. Please login again.');
+      }
+
+      print('Fetching data for UID: ${userUid.value}');
+      print('User role: ${userRole.value}');
+      print('Is Parent: ${isParent.value}');
+      print('Is Teacher: ${isTeacher.value}');
+
+      DocumentSnapshot? userDoc;
+
+      // Try fetching from the appropriate collection based on role
+      if (isTeacher.value) {
+        print('Trying to fetch from teachers collection...');
+        userDoc = await _firestore
+            .collection('teachers')
+            .doc(userUid.value)
+            .get();
+
+        print('Teachers collection - Document exists: ${userDoc.exists}');
+
+        if (!userDoc.exists) {
+          print('Not found in teachers, trying students collection...');
+          userDoc = await _firestore
+              .collection('students')
+              .doc(userUid.value)
+              .get();
+          print('Students collection - Document exists: ${userDoc.exists}');
+        }
+      } else if (isParent.value) {
+        print('Trying to fetch from parents collection...');
+        userDoc = await _firestore
+            .collection('parents')
+            .doc(userUid.value)
+            .get();
+
+        print('Parents collection - Document exists: ${userDoc.exists}');
+
+        if (!userDoc.exists) {
+          print('Not found in parents, trying students collection...');
+          userDoc = await _firestore
+              .collection('students')
+              .doc(userUid.value)
+              .get();
+          print('Students collection - Document exists: ${userDoc.exists}');
+        }
+      } else {
+        // If role is unclear, try all collections
+        print('Role unclear, trying all collections...');
+
+        // Try teachers first
+        userDoc = await _firestore
+            .collection('teachers')
+            .doc(userUid.value)
+            .get();
+
+        if (!userDoc.exists) {
+          // Try students
+          userDoc = await _firestore
+              .collection('students')
+              .doc(userUid.value)
+              .get();
+        }
+
+        if (!userDoc.exists) {
+          // Try parents
+          userDoc = await _firestore
+              .collection('parents')
+              .doc(userUid.value)
+              .get();
+        }
+      }
+
+      if (userDoc != null && userDoc.exists && userDoc.data() != null) {
+        // Store user data as Map
+        Map<String, dynamic> userData = Map<String, dynamic>.from(
+          userDoc.data() as Map<String, dynamic>,
+        );
+
+        print('Raw user data: $userData');
+
+        // Add role information to user data
+        userData['role'] = userRole.value;
+        userData['uid'] = userUid.value;
+        userData['email'] = userEmail.value;
+
+        // Get profile image URL from Realtime Database
+        try {
+          final DatabaseReference dbRef = FirebaseDatabase.instance.ref().child(
+            'profile_images/${userUid.value}',
+          );
+          final DataSnapshot snapshot = await dbRef.get();
+
+          if (snapshot.exists && snapshot.value != null) {
+            userData['profileImageUrl'] = snapshot.value.toString();
+            print('Profile image URL found: ${userData['profileImageUrl']}');
+          } else {
+            print('No profile image found in Realtime Database');
+          }
+        } catch (e) {
+          print('Error fetching profile image: $e');
+          // Continue without profile image
+        }
+
+        currentUser.value = userData;
+        print('✅ Current user loaded successfully: ${userData['fullName']}');
+
+        _populateEditControllers();
+      } else {
+        throw Exception('User profile not found in any collection');
+      }
+    } catch (e) {
+      hasError.value = true;
+      errorMessage.value = e.toString();
+      print('❌ Error fetching user data: $e');
       _showErrorSnackbar(
         'Error',
         'Failed to load profile data: ${e.toString()}',
@@ -123,20 +282,150 @@ class ProfileController extends GetxController {
     }
   }
 
+  // Specific method to fetch teacher data (similar to your existing method)
+  Future<void> fetchCurrentTeacherData() async {
+    try {
+      isLoading.value = true;
+
+      if (userUid.value.isEmpty) {
+        _showErrorSnackbar('Error', 'User not found. Please login again.');
+        return;
+      }
+
+      // Fetch current teacher data from Firestore using UID
+      final docSnapshot = await _firestore
+          .collection('teachers')
+          .doc(userUid.value)
+          .get();
+
+      if (docSnapshot.exists) {
+        Map<String, dynamic> userData = Map<String, dynamic>.from(
+          docSnapshot.data()!,
+        );
+
+        // Add additional info
+        userData['role'] = 'teacher';
+        userData['uid'] = userUid.value;
+        userData['email'] = userEmail.value;
+
+        currentUser.value = userData;
+        print('✅ Current teacher loaded: ${userData['fullName']}');
+
+        _populateEditControllers();
+      } else {
+        // If not found in teachers, try students collection
+        final studentSnapshot = await _firestore
+            .collection('students')
+            .doc(userUid.value)
+            .get();
+
+        if (studentSnapshot.exists) {
+          Map<String, dynamic> userData = Map<String, dynamic>.from(
+            studentSnapshot.data()!,
+          );
+
+          userData['role'] = 'student';
+          userData['uid'] = userUid.value;
+          userData['email'] = userEmail.value;
+
+          currentUser.value = userData;
+          print('✅ Current user loaded from students: ${userData['fullName']}');
+
+          _populateEditControllers();
+        } else {
+          _showErrorSnackbar('Error', 'User profile not found.');
+        }
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error', 'Failed to load profile: $e');
+      print('❌ Error fetching teacher data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Generic method to fetch current user data
+  Future<void> fetchCurrentUserData() async {
+    try {
+      isLoading.value = true;
+
+      if (userUid.value.isEmpty) {
+        _showErrorSnackbar('Error', 'User not found. Please login again.');
+        return;
+      }
+
+      // Try multiple collections to find user
+      DocumentSnapshot? userDoc;
+
+      // Try teachers first
+      userDoc = await _firestore
+          .collection('teachers')
+          .doc(userUid.value)
+          .get();
+
+      if (!userDoc.exists) {
+        // Try students
+        userDoc = await _firestore
+            .collection('students')
+            .doc(userUid.value)
+            .get();
+      }
+
+      if (!userDoc.exists) {
+        // Try parents
+        userDoc = await _firestore
+            .collection('parents')
+            .doc(userUid.value)
+            .get();
+      }
+
+      if (userDoc.exists) {
+        Map<String, dynamic> userData = Map<String, dynamic>.from(
+          userDoc.data() as Map<String, dynamic>,
+        );
+
+        userData['uid'] = userUid.value;
+        userData['email'] = userEmail.value;
+
+        currentUser.value = userData;
+        print('✅ Current user loaded: ${userData['fullName']}');
+
+        _populateEditControllers();
+      } else {
+        _showErrorSnackbar('Error', 'User profile not found.');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error', 'Failed to load profile: $e');
+      print('❌ Error fetching user data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   // Populate edit form controllers with current data
   void _populateEditControllers() {
-    if (student.value != null) {
-      fullNameController.text = student.value!.fullName;
-      phoneController.text = student.value!.phone;
+    if (currentUser.value != null) {
+      Map<String, dynamic> userData = currentUser.value!;
 
-      departmentController.text = student.value!.department;
+      fullNameController.text = userData['fullName']?.toString() ?? '';
+      phoneController.text = userData['phone']?.toString() ?? '';
 
+      if (isTeacher.value) {
+        departmentController.text = userData['department']?.toString() ?? '';
+        subjectController.text = userData['subject']?.toString() ?? '';
+        employeeIdController.text = userData['employeeId']?.toString() ?? '';
+      } else if (isParent.value) {
+       
+        childClassController.text = userData['childClass']?.toString() ?? '';
+      }
+
+      print('Controllers populated successfully');
     }
   }
 
   // Start editing profile
   void startEditingProfile() {
-    if (student.value == null) {
+    if (currentUser.value == null) {
       _showErrorSnackbar('Error', 'Profile data not loaded yet');
       return;
     }
@@ -151,19 +440,24 @@ class ProfileController extends GetxController {
     _populateEditControllers(); // Reset to original values
   }
 
+  // Check if current user can edit child data
+  bool canEditChildData() {
+    return isParent.value;
+  }
+
   // Validate email format
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
-  // Validate phone number format (basic validation)
+  // Validate phone number format
   bool _isValidPhone(String phone) {
     return RegExp(r'^\+?[\d\s\-\(\)]{10,}$').hasMatch(phone);
   }
 
   // Save profile changes
   Future<void> saveProfileChanges() async {
-    if (student.value == null) return;
+    if (currentUser.value == null) return;
 
     try {
       isLoading.value = true;
@@ -181,21 +475,28 @@ class ProfileController extends GetxController {
 
       // Validate phone number format
       if (!_isValidPhone(phoneController.text.trim())) {
-        _showErrorSnackbar('Validation Error', 'Please enter a valid phone number');
+        _showErrorSnackbar(
+          'Validation Error',
+          'Please enter a valid phone number',
+        );
         return;
       }
 
+      // Role-specific validation
+      if (isTeacher.value) {
+        if (departmentController.text.trim().isEmpty) {
+          _showErrorSnackbar('Validation Error', 'Department is required');
+          return;
+        }
+        if (subjectController.text.trim().isEmpty) {
+          _showErrorSnackbar('Validation Error', 'Subject is required');
+          return;
+        }
+      } 
 
-      // Create updated student object
-      final updatedStudent = student.value!.copyWith(
-        fullName: fullNameController.text.trim(),
-        phone: phoneController.text.trim(),
-       
-      );
-
-      await updateStudentData(updatedStudent);
+      await updateUserData();
       isEditingProfile.value = false;
-      
+
       _showSuccessSnackbar('Success', 'Profile updated successfully!');
     } catch (e) {
       print('Error saving profile changes: $e');
@@ -205,65 +506,54 @@ class ProfileController extends GetxController {
     }
   }
 
-  // Update student data in Firestore
-  Future<void> updateStudentData(Student updatedStudent) async {
+  // Update user data in Firestore
+  Future<void> updateUserData() async {
     try {
-      final dataToUpdate = updatedStudent.toMap();
-      dataToUpdate['updatedAt'] = FieldValue.serverTimestamp();
+      Map<String, dynamic> userData = Map<String, dynamic>.from(
+        currentUser.value!,
+      );
+
+      // Update common fields
+      userData['fullName'] = fullNameController.text.trim();
+      userData['phone'] = phoneController.text.trim();
+      userData['updatedAt'] = FieldValue.serverTimestamp();
+
+      // Update role-specific fields
+      if (isTeacher.value) {
+        userData['department'] = departmentController.text.trim();
+        userData['subject'] = subjectController.text.trim();
+        userData['employeeId'] = employeeIdController.text.trim();
+      } else if (isParent.value) {
+       
+        userData['childClass'] = childClassController.text.trim();
+      }
+
+      String collection = isParent.value ? 'parents' : 'teachers';
+
+      print('Updating user data in collection: $collection');
+      print('Updated data: $userData');
 
       await _firestore
-          .collection('students')
-          .doc(updatedStudent.uid)
-          .update(dataToUpdate);
+          .collection(collection)
+          .doc(userUid.value)
+          .update(userData);
 
-      student.value = updatedStudent;
+      currentUser.value = userData;
+      print('User data updated successfully');
     } catch (e) {
-      print('Error updating student data: $e');
+      print('Error updating user data: $e');
       _showErrorSnackbar('Error', 'Failed to update profile: ${e.toString()}');
       rethrow;
     }
   }
 
-  // Update only parent information
-  Future<void> updateParentInfo({
-    required String parentPhone,
-    required String parentEmail,
-  }) async {
-    if (student.value == null) return;
-
-    try {
-      isLoading.value = true;
-
-      // Validate parent phone if provided
-      if (parentPhone.trim().isNotEmpty && !_isValidPhone(parentPhone.trim())) {
-        _showErrorSnackbar('Validation Error', 'Please enter a valid parent phone number');
-        return;
-      }
-
-      // Validate parent email if provided
-      if (parentEmail.trim().isNotEmpty && !_isValidEmail(parentEmail.trim())) {
-        _showErrorSnackbar('Validation Error', 'Please enter a valid parent email address');
-        return;
-      }
-
-      final updatedStudent = student.value!.copyWith(
-        parentPhone: parentPhone.trim().isEmpty ? null : parentPhone.trim(),
-        parentEmail: parentEmail.trim().isEmpty ? null : parentEmail.trim(),
-      );
-
-      await updateStudentData(updatedStudent);
-      _showSuccessSnackbar('Success', 'Parent information updated successfully!');
-    } catch (e) {
-      print('Error updating parent info: $e');
-      _showErrorSnackbar('Error', 'Failed to update parent information: ${e.toString()}');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // Refresh profile from Realtime Database
+  // Refresh profile data
   Future<void> refreshProfile() async {
-    await fetchStudentData(); // Make sure fetchStudentData() pulls from Realtime DB
+    if (isTeacher.value) {
+      await fetchCurrentTeacherData();
+    } else {
+      await fetchCurrentUserData();
+    }
   }
 
   void changePassword() {
@@ -316,8 +606,13 @@ class ProfileController extends GetxController {
                 try {
                   await FirebaseAuth.instance.signOut();
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('uid');
-                  student.value = null;
+                  await prefs.clear(); // Clear all preferences
+                  currentUser.value = null;
+                  userRole.value = '';
+                  userUid.value = '';
+                  userEmail.value = '';
+                  isParent.value = false;
+                  isTeacher.value = false;
 
                   Get.snackbar(
                     'Logged Out',
@@ -348,6 +643,47 @@ class ProfileController extends GetxController {
         ],
       ),
     );
+  }
+
+  // Private helper methods for getters
+  String _getFullName() {
+    if (currentUser.value == null) return 'Loading...';
+    return currentUser.value!['fullName']?.toString() ?? 'No Name';
+  }
+
+  String _getDepartment() {
+    if (currentUser.value == null || !isTeacher.value) return 'N/A';
+    return currentUser.value!['department']?.toString() ?? 'No Department';
+  }
+
+  String _getPhone() {
+    if (currentUser.value == null) return 'Loading...';
+    return currentUser.value!['phone']?.toString() ?? 'No Phone';
+  }
+
+  String? _getProfileImageUrl() {
+    if (currentUser.value == null) return null;
+    return currentUser.value!['profileImageUrl']?.toString();
+  }
+
+  String _getSubject() {
+    if (currentUser.value == null || !isTeacher.value) return 'N/A';
+    return currentUser.value!['subject']?.toString() ?? 'No Subject';
+  }
+
+  String _getEmployeeId() {
+    if (currentUser.value == null || !isTeacher.value) return 'N/A';
+    return currentUser.value!['employeeId']?.toString() ?? 'No Employee ID';
+  }
+
+  String _getChildName() {
+    if (currentUser.value == null || !isParent.value) return 'N/A';
+    return currentUser.value!['childName']?.toString() ?? 'No Child Name';
+  }
+
+  String _getChildClass() {
+    if (currentUser.value == null || !isParent.value) return 'N/A';
+    return currentUser.value!['childClass']?.toString() ?? 'No Class';
   }
 
   // Helper methods for showing snackbars

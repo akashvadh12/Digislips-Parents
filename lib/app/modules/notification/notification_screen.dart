@@ -479,6 +479,12 @@ class NotificationScreen extends StatelessWidget {
         return 'PROFILE';
       case NotificationType.general:
         return 'GENERAL';
+      case NotificationType.newLeaveRequest:
+        return 'NEW REQUEST';
+      case NotificationType.leaveStatusChanged:
+        return 'STATUS CHANGE';
+      case NotificationType.systemAlert:
+        return 'SYSTEM ALERT';
     }
   }
 

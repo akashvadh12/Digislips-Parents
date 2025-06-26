@@ -88,12 +88,22 @@ class HomeController extends GetxController {
   var selectedIndex = 0.obs;
   var isLoading = true.obs;
   var isLoadingLeaves = false.obs;
-  var student = Rxn<Student>(); // Current logged-in teacher data
+  var isVerifyingEmail = false.obs;
+  var student = Rxn<Student>(); // Current logged-in user data
+  var parentStudentData =
+      Rxn<Map<String, dynamic>>(); // Student data for parent
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LeaveService _leaveService = LeaveService();
 
-  // Updated to use reactive list for all students' leave applications
+  // User role variables
+  var userRole = ''.obs;
+  var isParent = false.obs;
+  var isTeacher = false.obs;
+  var userEmail = ''.obs;
+  var uid = ''.obs;
+
+  // Updated to use reactive list for leave applications
   final recentLeaveApplications = <LeaveApplication>[].obs;
 
   // Stream subscription for leave applications
@@ -102,8 +112,7 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchCurrentTeacherData();
-    fetchAllStudentsLeaveApplications();
+    getUserDetailsFromPrefs();
   }
 
   @override
@@ -112,16 +121,226 @@ class HomeController extends GetxController {
     super.onClose();
   }
 
-  // Fetch current logged-in teacher data using UID
+  // Get user details from SharedPreferences and initialize based on role
+  Future<void> getUserDetailsFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Get stored values
+      String? storedUid = prefs.getString('uid');
+      String? storedUserRole = prefs.getString('userRole');
+      bool? storedIsParent = prefs.getBool('isParent');
+      bool? storedIsTeacher = prefs.getBool('isTeacher');
+      String? storedEmail = prefs.getString('Email');
+
+      // Update reactive variables
+      uid.value = storedUid ?? '';
+      userRole.value = storedUserRole ?? '';
+      isParent.value = storedIsParent ?? false;
+      isTeacher.value = storedIsTeacher ?? false;
+      userEmail.value = storedEmail ?? '';
+
+      // Print for debugging
+      print("Email is 😁😁👌 ${userEmail.value}");
+      print('UID😁😁😁👍: ${uid.value}');
+      print('Role😊👌👌: ${userRole.value}');
+      print('Is Parent😁: ${isParent.value}');
+      print('Is Teacher😁: ${isTeacher.value}');
+
+      if (uid.value.isEmpty) {
+        Get.snackbar(
+          'Error',
+          'User not found. Please login again.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      // Initialize based on role
+      if (userRole.value == 'parent' || isParent.value) {
+        await initializeParentData();
+      } else if (userRole.value == 'teacher' || isTeacher.value) {
+        await initializeTeacherData();
+      } else {
+        await fetchCurrentUserData();
+      }
+    } catch (e) {
+      print('❌ Error getting user details from prefs: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load user data: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Initialize parent-specific data
+  Future<void> initializeParentData() async {
+    print('🔄 Initializing parent data...');
+
+    // Verify parent email and get student data
+    final studentData = await _verifyParentEmailInStudents(userEmail.value);
+
+    if (studentData != null) {
+      parentStudentData.value = studentData;
+
+      // Create a Student object from the student data for consistency
+      student.value = Student.fromMap(studentData);
+
+      print(
+        '✅ Parent data initialized for student: ${studentData['fullName']}',
+      );
+
+      // Fetch leave applications for this specific student
+      fetchParentStudentLeaveApplications(studentData['studentId']);
+    } else {
+      Get.snackbar(
+        'Error',
+        'No student found with your parent email. Please contact administrator.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+
+    isLoading.value = false;
+  }
+
+  // Initialize teacher-specific data
+  Future<void> initializeTeacherData() async {
+    print('🔄 Initializing teacher data...');
+    await fetchCurrentTeacherData();
+    fetchAllStudentsLeaveApplications();
+  }
+
+  // Verify parent email in students collection
+  Future<Map<String, dynamic>?> _verifyParentEmailInStudents(
+    String parentEmail,
+  ) async {
+    try {
+      isVerifyingEmail.value = true;
+
+      print('🔍 Verifying parent email in students collection: $parentEmail');
+
+      // Query students collection to find student with matching parent email
+      final querySnapshot = await _firestore
+          .collection('students')
+          .where('parentEmail', isEqualTo: parentEmail.trim().toLowerCase())
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Found student(s) with matching parent email
+        final studentData = querySnapshot.docs.first.data();
+        studentData['studentId'] =
+            querySnapshot.docs.first.id; // Add document ID
+
+        print(
+          '✅ Found student with matching parent email: ${studentData['fullName']}',
+        );
+        return studentData;
+      } else {
+        print('❌ No student found with parent email: $parentEmail');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error verifying parent email: $e');
+      return null;
+    } finally {
+      isVerifyingEmail.value = false;
+    }
+  }
+
+  // Fetch leave applications for parent's specific student
+  void fetchParentStudentLeaveApplications(String studentId) {
+    try {
+      isLoadingLeaves.value = true;
+      print(
+        '👨‍👩‍👧‍👦 Fetching leave applications for parent\'s student: $studentId',
+      );
+
+      // Cancel previous subscription if exists
+      _leaveSubscription?.cancel();
+
+      // Get leave applications for the specific student
+      _leaveSubscription = _firestore
+          .collection('students')
+          .doc(studentId)
+          .collection('leave')
+          .orderBy('submittedAt', descending: true)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              List<LeaveModel> leaves = [];
+
+              if (snapshot.docs.isNotEmpty) {
+                print(
+                  '📄 Processing ${snapshot.docs.length} leaves for parent view',
+                );
+
+                leaves = snapshot.docs.map((leaveDoc) {
+                  return LeaveModel.fromFirestore(leaveDoc).copyWith(
+                    id: leaveDoc.id,
+                    uid: studentId,
+                    fullName: parentStudentData.value?['fullName'],
+                    rollNumber: parentStudentData.value?['rollNumber'],
+                    department: parentStudentData.value?['department'],
+                    email: parentStudentData.value?['email'],
+                    phone: parentStudentData.value?['phone'],
+                    parentPhone: parentStudentData.value?['parentPhone'],
+                  );
+                }).toList();
+              }
+
+              // Convert LeaveModel to LeaveApplication
+              final applications = leaves.map((leave) {
+                return LeaveApplication.fromLeaveModel(leave);
+              }).toList();
+
+              // Update the reactive list
+              recentLeaveApplications.assignAll(applications);
+              isLoadingLeaves.value = false;
+
+              print(
+                '✅ Successfully loaded ${applications.length} leave applications for parent',
+              );
+            },
+            onError: (error) {
+              print(
+                '❌ Error fetching parent student leave applications: $error',
+              );
+              Get.snackbar(
+                'Error',
+                'Failed to load leave applications: $error',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
+              isLoadingLeaves.value = false;
+            },
+          );
+    } catch (e) {
+      print('❌ Error setting up parent student leave applications stream: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to setup leave applications: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      isLoadingLeaves.value = false;
+    }
+  }
+
+  // Fetch current teacher data using UID (existing method)
   Future<void> fetchCurrentTeacherData() async {
     try {
       isLoading.value = true;
 
-      // Get UID from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final uid = prefs.getString('uid');
-
-      if (uid == null) {
+      if (uid.value.isEmpty) {
         Get.snackbar(
           'Error',
           'User not found. Please login again.',
@@ -134,8 +353,8 @@ class HomeController extends GetxController {
 
       // Fetch current teacher data from Firestore using UID
       final docSnapshot = await _firestore
-          .collection('teachers') // Assuming teachers collection
-          .doc(uid)
+          .collection('teachers')
+          .doc(uid.value)
           .get();
 
       if (docSnapshot.exists) {
@@ -145,7 +364,7 @@ class HomeController extends GetxController {
         // If not found in teachers, try students collection
         final studentSnapshot = await _firestore
             .collection('students')
-            .doc(uid)
+            .doc(uid.value)
             .get();
 
         if (studentSnapshot.exists) {
@@ -175,7 +394,68 @@ class HomeController extends GetxController {
     }
   }
 
-  // Fetch all students' leave applications using collection method
+  // Generic method to fetch current user data
+  Future<void> fetchCurrentUserData() async {
+    try {
+      isLoading.value = true;
+
+      if (uid.value.isEmpty) {
+        Get.snackbar(
+          'Error',
+          'User not found. Please login again.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      // Try multiple collections to find user
+      DocumentSnapshot? userDoc;
+
+      // Try teachers first
+      userDoc = await _firestore.collection('teachers').doc(uid.value).get();
+
+      if (!userDoc.exists) {
+        // Try students
+        userDoc = await _firestore.collection('students').doc(uid.value).get();
+      }
+
+      if (!userDoc.exists) {
+        // Try parents
+        userDoc = await _firestore.collection('parents').doc(uid.value).get();
+      }
+
+      if (userDoc.exists) {
+        student.value = Student.fromMap(userDoc.data() as Map<String, dynamic>);
+        print('✅ Current user loaded: ${student.value?.fullName}');
+
+        // Fetch appropriate leave applications
+        fetchAllStudentsLeaveApplications();
+      } else {
+        Get.snackbar(
+          'Error',
+          'User profile not found.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to load profile: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      print('❌ Error fetching user data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Fetch all students' leave applications using collection method (for teachers)
   void fetchAllStudentsLeaveApplications() {
     try {
       isLoadingLeaves.value = true;
@@ -276,15 +556,29 @@ class HomeController extends GetxController {
     }
   }
 
-  // Method to refresh teacher data and all students' leave applications
-  Future<void> refreshStudentData() async {
-    await fetchCurrentTeacherData();
-    fetchAllStudentsLeaveApplications();
+  // Method to refresh data based on role
+  Future<void> refreshUserData() async {
+    if (userRole.value == 'parent' || isParent.value) {
+      await initializeParentData();
+    } else if (userRole.value == 'teacher' || isTeacher.value) {
+      await fetchCurrentTeacherData();
+      fetchAllStudentsLeaveApplications();
+    } else {
+      await fetchCurrentUserData();
+    }
   }
 
   // Method to manually refresh only leave applications
   Future<void> refreshLeaveApplications() async {
-    fetchAllStudentsLeaveApplications();
+    if (userRole.value == 'parent' || isParent.value) {
+      if (parentStudentData.value != null) {
+        fetchParentStudentLeaveApplications(
+          parentStudentData.value!['studentId'],
+        );
+      }
+    } else {
+      fetchAllStudentsLeaveApplications();
+    }
   }
 
   void changeBottomNavIndex(int index) {
@@ -312,9 +606,17 @@ class HomeController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      // Clear teacher data and leave applications
+      // Clear user data and leave applications
       student.value = null;
+      parentStudentData.value = null;
       recentLeaveApplications.clear();
+
+      // Reset role variables
+      userRole.value = '';
+      isParent.value = false;
+      isTeacher.value = false;
+      userEmail.value = '';
+      uid.value = '';
 
       Get.to(LogoutPage());
     } catch (e) {
@@ -328,21 +630,119 @@ class HomeController extends GetxController {
     }
   }
 
-  // Helper getters for easy access to teacher data
-  String get studentName => student.value?.fullName ?? 'Teacher';
-  String get studentDepartment => student.value?.department ?? 'Unknown';
-  String get studentId => student.value?.rollNumber ?? 'N/A';
-  String get studentEmail => student.value?.email ?? '';
-  String get studentPhone => student.value?.phone ?? '';
-  String get studentSemester => student.value?.semester ?? '';
-  String? get profileImageUrl => student.value?.profileImageUrl;
-  bool get isProfileComplete => student.value?.profileComplete ?? false;
+  // Helper getters for easy access to user data
+  String get studentName {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['fullName'] ?? 'Student';
+    }
+    return student.value?.fullName ?? 'User';
+  }
 
-  // Helper getters for leave applications (now for all students)
+  // Get current user name (the logged-in user, not the student)
+  String get currentUserName {
+    if (isParent.value) {
+      // For parents, try to get parent name from student data or use email
+      if (parentStudentData.value != null) {
+        return parentStudentData.value!['parentName'] ??
+            parentStudentData.value!['parentEmail']?.split('@')[0] ??
+            'Parent';
+      }
+      return userEmail.value.split('@')[0];
+    } else if (isTeacher.value) {
+      // For teachers, get teacher's own name from their profile
+      return student.value?.fullName ?? userEmail.value.split('@')[0];
+    } else {
+      // For other users, try to get their profile name
+      return student.value?.fullName ?? userEmail.value.split('@')[0];
+    }
+  }
+
+  // Get time-based greeting
+  String get timeBasedGreeting {
+    final hour = DateTime.now().hour;
+
+    if (hour >= 5 && hour < 12) {
+      return 'Good Morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good Afternoon';
+    } else if (hour >= 17 && hour < 21) {
+      return 'Good Evening';
+    } else {
+      return 'Good Night';
+    }
+  }
+
+  // Get complete greeting with user name
+  String get completeGreeting {
+    return '$timeBasedGreeting, ${currentUserName}!';
+  }
+
+  // Get role-specific greeting
+  String get roleBasedGreeting {
+    String roleTitle = '';
+    if (isParent.value) {
+      roleTitle = ' (Parent)';
+    } else if (isTeacher.value) {
+      roleTitle = ' (Teacher)';
+    }
+
+    return '$timeBasedGreeting, ${currentUserName}$roleTitle!';
+  }
+
+  String get studentDepartment {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['department'] ?? 'Unknown';
+    }
+    return student.value?.department ?? 'Unknown';
+  }
+
+  String get studentId {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['rollNumber'] ?? 'N/A';
+    }
+    return student.value?.rollNumber ?? 'N/A';
+  }
+
+  String get studentEmail {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['email'] ?? '';
+    }
+    return student.value?.email ?? '';
+  }
+
+  String get studentPhone {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['phone'] ?? '';
+    }
+    return student.value?.phone ?? '';
+  }
+
+  String get studentSemester {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['semester'] ?? '';
+    }
+    return student.value?.semester ?? '';
+  }
+
+  String? get profileImageUrl {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['profileImageUrl'];
+    }
+    return student.value?.profileImageUrl;
+  }
+
+  bool get isProfileComplete {
+    if (isParent.value && parentStudentData.value != null) {
+      return parentStudentData.value!['profileComplete'] ?? false;
+    }
+    return student.value?.profileComplete ?? false;
+  }
+
+  // Helper getters for leave applications
   bool get hasRecentLeaves => recentLeaveApplications.isNotEmpty;
   int get recentLeavesCount => recentLeaveApplications.length;
 
-  // Get leave statistics for display (all students)
+  // Get leave statistics for display
   Map<String, int> get leaveStats {
     final stats = {
       'total': recentLeaveApplications.length,
@@ -375,14 +775,14 @@ class HomeController extends GetxController {
         .toList();
   }
 
-  // Get applications for a specific student
+  // Get applications for a specific student (useful for teachers)
   List<LeaveApplication> getApplicationsForStudent(String studentId) {
     return recentLeaveApplications
         .where((app) => app.studentId == studentId)
         .toList();
   }
 
-  // Get unique students who have applied for leaves
+  // Get unique students who have applied for leaves (for teachers)
   List<String> get uniqueStudents {
     final students = <String>{};
     for (final app in recentLeaveApplications) {
@@ -391,5 +791,60 @@ class HomeController extends GetxController {
       }
     }
     return students.toList();
+  }
+
+  // Role-based helper getters
+  bool get isCurrentUserParent => userRole.value == 'parent' || isParent.value;
+  bool get isCurrentUserTeacher =>
+      userRole.value == 'teacher' || isTeacher.value;
+
+  String get currentUserRole => userRole.value;
+  String get currentUserEmail => userEmail.value;
+  String get currentUserId => uid.value;
+
+  // Additional helper methods for UI
+  String get welcomeMessage {
+    if (isParent.value) {
+      return 'Welcome to your child\'s dashboard';
+    } else if (isTeacher.value) {
+      return 'Welcome to your teacher dashboard';
+    } else {
+      return 'Welcome to your dashboard';
+    }
+  }
+
+  // Get greeting with emoji based on time
+  String get greetingWithEmoji {
+    final hour = DateTime.now().hour;
+    String emoji = '';
+
+    if (hour >= 5 && hour < 12) {
+      emoji = '🌅';
+    } else if (hour >= 12 && hour < 17) {
+      emoji = '🌞';
+    } else if (hour >= 17 && hour < 21) {
+      emoji = '🌆';
+    } else {
+      emoji = '🌙';
+    }
+
+    return '$emoji $timeBasedGreeting, ${currentUserName}!';
+  }
+
+  // Get detailed user info for display
+  Map<String, String> get userDisplayInfo {
+    return {
+      'name': currentUserName,
+      'role': isParent.value
+          ? 'Parent'
+          : isTeacher.value
+          ? 'Teacher'
+          : 'User',
+      'email': userEmail.value,
+      'greeting': timeBasedGreeting,
+      'completeGreeting': completeGreeting,
+      'greetingWithEmoji': greetingWithEmoji,
+      'welcomeMessage': welcomeMessage,
+    };
   }
 }
