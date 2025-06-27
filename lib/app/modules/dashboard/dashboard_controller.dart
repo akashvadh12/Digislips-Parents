@@ -109,9 +109,28 @@ class HomeController extends GetxController {
   // Stream subscription for leave applications
   StreamSubscription? _leaveSubscription;
 
+  void _resetUserData() {
+    // Cancel subscriptions
+    _leaveSubscription?.cancel();
+    _leaveSubscription = null;
+    // Reset all user-related Rx variables
+    student.value = null;
+    parentStudentData.value = null;
+    recentLeaveApplications.clear();
+    userRole.value = '';
+    isParent.value = false;
+    isTeacher.value = false;
+    userEmail.value = '';
+    uid.value = '';
+    isLoading.value = true;
+    isLoadingLeaves.value = false;
+    isVerifyingEmail.value = false;
+  }
+
   @override
   void onInit() {
     super.onInit();
+    _resetUserData(); // Ensure clean state on controller init
     getUserDetailsFromPrefs();
   }
 
@@ -123,6 +142,7 @@ class HomeController extends GetxController {
 
   // Get user details from SharedPreferences and initialize based on role
   Future<void> getUserDetailsFromPrefs() async {
+    _resetUserData(); // Clear previous user data before loading new
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -599,25 +619,13 @@ class HomeController extends GetxController {
 
   void onLogout() async {
     try {
-      // Cancel leave applications subscription
+      _resetUserData(); // Clear all user/session data
       _leaveSubscription?.cancel();
-
-      // Clear SharedPreferences
+      _leaveSubscription = null;
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-
-      // Clear user data and leave applications
-      student.value = null;
-      parentStudentData.value = null;
-      recentLeaveApplications.clear();
-
-      // Reset role variables
-      userRole.value = '';
-      isParent.value = false;
-      isTeacher.value = false;
-      userEmail.value = '';
-      uid.value = '';
-
+      // Remove HomeController from memory so a new one is created on next login
+      Get.delete<HomeController>(force: true);
       Get.to(LogoutPage());
     } catch (e) {
       Get.snackbar(
@@ -828,7 +836,7 @@ class HomeController extends GetxController {
       emoji = '🌙';
     }
 
-    return '$emoji $timeBasedGreeting, ${currentUserName}!';
+    return '$emoji $timeBasedGreeting';
   }
 
   // Get detailed user info for display

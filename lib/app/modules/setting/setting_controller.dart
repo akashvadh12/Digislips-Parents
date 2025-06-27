@@ -642,11 +642,18 @@ This policy is effective as of the last updated date and will remain in effect e
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
 
-      // Clear stored data
+      // Clear all stored preferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear(); // Clear all preferences
+      await prefs.clear();
 
-      // Clear user data
+      // Recreate essential keys with default values if needed
+      await prefs.setBool('isLoggedIn', false);
+      await prefs.setString('userRole', '');
+      await prefs.setString('userUid', '');
+      await prefs.setString('userEmail', '');
+      // Add more keys here if your app depends on them immediately after launch
+
+      // Clear in-memory user data (GetX observables, etc.)
       currentUser.value = null;
       userRole.value = '';
       userUid.value = '';
@@ -654,12 +661,13 @@ This policy is effective as of the last updated date and will remain in effect e
       isParent.value = false;
       isTeacher.value = false;
 
+      // Show success snackbar
       _showSuccessSnackbar(
         'Logged Out',
         'You have been successfully logged out',
       );
 
-      // Navigate to splash screen
+      // Navigate to splash/login screen
       await Future.delayed(Duration(milliseconds: 500));
       Get.offAll(() => SplashScreen(), transition: Transition.fadeIn);
     } catch (e) {

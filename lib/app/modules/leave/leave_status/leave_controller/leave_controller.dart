@@ -1,4 +1,6 @@
 // controllers/leave_controller.dart
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:digislips/app/modules/leave/leave_model/leave_model.dart';
 import 'package:digislips/app/modules/leave/leave_service/leave_service.dart';
@@ -14,10 +16,20 @@ class LeaveController extends GetxController {
   final RxString currentUserId = ''.obs;
   final RxString userRole = ''.obs; // 'student', 'admin', 'teacher'
 
+  // Add a StreamSubscription to properly manage the listener
+  StreamSubscription<List<LeaveModel>>? _leaveSubscription;
+
   @override
   void onInit() {
     super.onInit();
     _initializeUser();
+  }
+
+  @override
+  void onClose() {
+    // Cancel the subscription when controller is disposed
+    _leaveSubscription?.cancel();
+    super.onClose();
   }
 
   Future<void> _initializeUser() async {
@@ -43,6 +55,9 @@ class LeaveController extends GetxController {
 
     print('🔍 Listening to leave requests for role: ${userRole.value}');
 
+    // Cancel existing subscription before creating a new one
+    _leaveSubscription?.cancel();
+
     // If user is admin/teacher, get all leave applications
     // If user is student, get only their applications
     Stream<List<LeaveModel>> leaveStream;
@@ -51,16 +66,23 @@ class LeaveController extends GetxController {
       print('👨‍💼 Fetching all leave applications for admin/teacher');
       leaveStream = _leaveService.getAllLeaveApplicationsForRole();
     } else {
-      print('👨‍🎓 Fetching student leave applications for: ${currentUserId.value}');
-      leaveStream = _leaveService.getStudentLeaveApplications(currentUserId.value);
+      print(
+        '👨‍🎓 Fetching student leave applications for: ${currentUserId.value}',
+      );
+      leaveStream = _leaveService.getStudentLeaveApplications(
+        currentUserId.value,
+      );
     }
 
-    leaveStream.listen(
+    _leaveSubscription = leaveStream.listen(
       (leaves) {
         // Sort leaves by submission date (newest first)
         leaves.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
         leaveRequests.value = leaves;
         print('✅ Successfully fetched ${leaves.length} leave requests');
+
+        // Force UI update
+        leaveRequests.refresh();
       },
       onError: (error) {
         print('❌ Error fetching leave requests: $error');
@@ -100,7 +122,9 @@ class LeaveController extends GetxController {
     }
 
     // Find the leave request to get the correct student ID
-    final leaveRequest = leaveRequests.firstWhereOrNull((leave) => leave.id == leaveId);
+    final leaveRequest = leaveRequests.firstWhereOrNull(
+      (leave) => leave.id == leaveId,
+    );
     if (leaveRequest == null) {
       print('❌ Leave request not found with ID: $leaveId');
       Get.snackbar('Error', 'Leave request not found');
@@ -135,15 +159,33 @@ class LeaveController extends GetxController {
         userId: currentUserId.value,
       );
 
+      // Optimistically update the local state immediately
+      final updatedRequests = leaveRequests.map((request) {
+        if (request.id == leaveId) {
+          return request.copyWith(
+            status: status,
+            reviewedBy: reviewerName,
+            reviewComments: reviewComments,
+            reviewedAt: DateTime.now(),
+          );
+        }
+        return request;
+      }).toList();
+
+      leaveRequests.value = updatedRequests;
+      leaveRequests.refresh();
+
       String message = status.toLowerCase() == 'approved'
           ? 'Leave request approved successfully'
           : 'Leave request rejected successfully';
 
       print('✅ Leave status updated successfully');
-      Get.snackbar('Success', message);
     } catch (e) {
       print('❌ Failed to update leave status: $e');
       Get.snackbar('Error', 'Failed to update leave request: $e');
+
+      // Refresh data from server in case of error
+      await refreshLeaveRequests();
     } finally {
       isLoading.value = false;
     }
@@ -152,6 +194,7 @@ class LeaveController extends GetxController {
   // Method to show approval/rejection dialog
   Future<void> showApprovalDialog(LeaveModel request) async {
     String? reviewComments;
+    final TextEditingController commentsController = TextEditingController();
 
     print('📝 Showing approval dialog for leave: ${request.id}');
     print('👤 Student: ${request.fullName} (${request.uid})');
@@ -170,6 +213,7 @@ class LeaveController extends GetxController {
             Text('Reason: ${request.reason}'),
             SizedBox(height: 16),
             TextField(
+              controller: commentsController,
               decoration: InputDecoration(
                 labelText: 'Review Comments (Optional)',
                 border: OutlineInputBorder(),
@@ -195,7 +239,9 @@ class LeaveController extends GetxController {
               await updateLeaveStatus(
                 request.id!,
                 'Rejected',
-                reviewComments: reviewComments,
+                reviewComments: commentsController.text.trim().isEmpty
+                    ? null
+                    : commentsController.text.trim(),
                 studentId: request.uid,
               );
             },
@@ -208,7 +254,9 @@ class LeaveController extends GetxController {
               await updateLeaveStatus(
                 request.id!,
                 'Approved',
-                reviewComments: reviewComments,
+                reviewComments: commentsController.text.trim().isEmpty
+                    ? null
+                    : commentsController.text.trim(),
                 studentId: request.uid,
               );
             },
@@ -231,10 +279,17 @@ class LeaveController extends GetxController {
       print('🗑️ Deleting leave request: $leaveId');
       // Implement delete functionality in service
       // await _leaveService.deleteLeaveApplication(currentUserId.value, leaveId);
+
+      // Optimistically remove from local state
+      leaveRequests.removeWhere((request) => request.id == leaveId);
+      leaveRequests.refresh();
+
       Get.snackbar('Success', 'Leave request deleted successfully');
     } catch (e) {
       print('❌ Failed to delete leave request: $e');
       Get.snackbar('Error', 'Failed to delete leave request: $e');
+      // Refresh data from server in case of error
+      await refreshLeaveRequests();
     } finally {
       isLoading.value = false;
     }
@@ -253,7 +308,7 @@ class LeaveController extends GetxController {
     }
 
     try {
-      if (userRole.value == 'admin' || userRole.value == 'teacher') {
+      if (userRole.value == 'Parents' || userRole.value == 'teacher') {
         // Return statistics for all applications
         final allRequests = leaveRequests;
         print('📊 Calculating statistics for ${allRequests.length} requests');

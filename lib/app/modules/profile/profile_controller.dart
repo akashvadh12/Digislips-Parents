@@ -40,7 +40,7 @@ class ProfileController extends GetxController {
   final phoneController = TextEditingController();
   final departmentController = TextEditingController();
   final subjectController = TextEditingController();
- 
+
   final childClassController = TextEditingController();
   final employeeIdController = TextEditingController();
 
@@ -100,7 +100,7 @@ class ProfileController extends GetxController {
     phoneController.dispose();
     departmentController.dispose();
     subjectController.dispose();
- 
+
     childClassController.dispose();
     employeeIdController.dispose();
     super.onClose();
@@ -415,7 +415,6 @@ class ProfileController extends GetxController {
         subjectController.text = userData['subject']?.toString() ?? '';
         employeeIdController.text = userData['employeeId']?.toString() ?? '';
       } else if (isParent.value) {
-       
         childClassController.text = userData['childClass']?.toString() ?? '';
       }
 
@@ -492,7 +491,7 @@ class ProfileController extends GetxController {
           _showErrorSnackbar('Validation Error', 'Subject is required');
           return;
         }
-      } 
+      }
 
       await updateUserData();
       isEditingProfile.value = false;
@@ -524,7 +523,6 @@ class ProfileController extends GetxController {
         userData['subject'] = subjectController.text.trim();
         userData['employeeId'] = employeeIdController.text.trim();
       } else if (isParent.value) {
-       
         userData['childClass'] = childClassController.text.trim();
       }
 
@@ -601,12 +599,17 @@ class ProfileController extends GetxController {
             ),
             child: TextButton(
               onPressed: () async {
-                Get.back();
+                Get.back(); // Close dialog
 
                 try {
+                  // Firebase SignOut
                   await FirebaseAuth.instance.signOut();
+
+                  // Clear SharedPreferences
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear(); // Clear all preferences
+                  await prefs.clear();
+
+                  // Clear any in-memory variables or observable values
                   currentUser.value = null;
                   userRole.value = '';
                   userUid.value = '';
@@ -614,6 +617,10 @@ class ProfileController extends GetxController {
                   isParent.value = false;
                   isTeacher.value = false;
 
+                  // Optional: Delete GetX controllers if any
+                  // Get.delete<YourController>();
+
+                  // Show confirmation snackbar
                   Get.snackbar(
                     'Logged Out',
                     'You have been successfully logged out',
@@ -624,6 +631,7 @@ class ProfileController extends GetxController {
                     borderRadius: 12,
                   );
 
+                  // Navigate to splash or login screen
                   await Future.delayed(Duration(milliseconds: 500));
                   Get.offAll(
                     () => SplashScreen(),

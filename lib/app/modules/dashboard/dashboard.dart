@@ -3,7 +3,9 @@ import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/contect/contect.dart';
 import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
+import 'package:digislips/app/modules/notification/notification_controller.dart';
 import 'package:digislips/app/modules/notification/notification_screen.dart';
+import 'package:digislips/app/shared/widgets/bottomnavigation/navigation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,7 +13,12 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     Get.put(HomeController());
-
+    final BottomNavController bottomNavController = Get.put(
+      BottomNavController(),
+    );
+    final NotificationController notificationController = Get.put(
+      NotificationController(),
+    );
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: SafeArea(
@@ -84,15 +91,40 @@ class HomeView extends GetView<HomeController> {
                                 size: 24,
                               ),
                               onPressed: () {
+                                bottomNavController.changeBottomNavIndex(1);
                                 // Get.to(NotificationScreen());
                               },
                             ),
                           ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(width: 8, height: 8),
-                          ),
+                          // Notification badge
+                          Obx(() {
+                            if (notificationController.hasUnreadNotifications) {
+                              return Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${notificationController.unreadCount.value}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return const SizedBox.shrink(); // Hide if no unread notifications
+                            }
+                          }),
                         ],
                       ),
                     ],
