@@ -41,7 +41,9 @@ class ProfileController extends GetxController {
   final departmentController = TextEditingController();
   final subjectController = TextEditingController();
 
+  final childNameController = TextEditingController();
   final childClassController = TextEditingController();
+  final childDepartmentController = TextEditingController();
   final employeeIdController = TextEditingController();
 
   // Available departments and subjects (for teachers)
@@ -83,10 +85,11 @@ class ProfileController extends GetxController {
   String? get profileImageUrl => _getProfileImageUrl();
 
   // Role-specific getters
-  String get subject => _getSubject(); // For teachers
-  String get employeeId => _getEmployeeId(); // For teachers
-  String get childName => _getChildName(); // For parents
-  String get childClass => _getChildClass(); // For parents
+  String get subject => _getSubject(); // For teachers only
+  String get employeeId => _getEmployeeId(); // For teachers only
+  String get childName => _getChildName(); // For parents only
+  String get childClass => _getChildClass(); // For parents only
+  String get childDepartment => _getChildDepartment(); // For parents only
 
   @override
   void onInit() {
@@ -101,7 +104,9 @@ class ProfileController extends GetxController {
     departmentController.dispose();
     subjectController.dispose();
 
+    childNameController.dispose();
     childClassController.dispose();
+    childDepartmentController.dispose();
     employeeIdController.dispose();
     super.onClose();
   }
@@ -411,14 +416,19 @@ class ProfileController extends GetxController {
       phoneController.text = userData['phone']?.toString() ?? '';
 
       if (isTeacher.value) {
+        // For teachers - show their department and subject
         departmentController.text = userData['department']?.toString() ?? '';
         subjectController.text = userData['subject']?.toString() ?? '';
         employeeIdController.text = userData['employeeId']?.toString() ?? '';
       } else if (isParent.value) {
+        // For parents - show child details including child's department
+        childNameController.text = userData['childName']?.toString() ?? '';
         childClassController.text = userData['childClass']?.toString() ?? '';
+        childDepartmentController.text =
+            userData['childDepartment']?.toString() ?? '';
       }
 
-      print('Controllers populated successfully');
+      print('Controllers populated successfully for role: ${userRole.value}');
     }
   }
 
@@ -444,14 +454,38 @@ class ProfileController extends GetxController {
     return isParent.value;
   }
 
+  // Check if current user can edit teacher data
+  bool canEditTeacherData() {
+    return isTeacher.value;
+  }
+
+  // Check if should show child fields
+  bool shouldShowChildFields() {
+    return isParent.value;
+  }
+
+  // Check if should show teacher fields
+  bool shouldShowTeacherFields() {
+    return isTeacher.value;
+  }
+
   // Validate email format
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
-  // Validate phone number format
+  // Validate phone number format - exactly 10 digits
   bool _isValidPhone(String phone) {
-    return RegExp(r'^\+?[\d\s\-\(\)]{10,}$').hasMatch(phone);
+    // Remove any spaces, dashes, or parentheses
+    String cleanPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+
+    // Check if it starts with +91 and remove it for validation
+    if (cleanPhone.startsWith('+91')) {
+      cleanPhone = cleanPhone.substring(3);
+    }
+
+    // Check if it's exactly 10 digits
+    return RegExp(r'^\d{10}$').hasMatch(cleanPhone);
   }
 
   // Save profile changes
@@ -472,11 +506,11 @@ class ProfileController extends GetxController {
         return;
       }
 
-      // Validate phone number format
+      // Validate phone number format - must be exactly 10 digits
       if (!_isValidPhone(phoneController.text.trim())) {
         _showErrorSnackbar(
           'Validation Error',
-          'Please enter a valid phone number',
+          'Please enter a valid 10-digit phone number',
         );
         return;
       }
@@ -487,10 +521,7 @@ class ProfileController extends GetxController {
           _showErrorSnackbar('Validation Error', 'Department is required');
           return;
         }
-        if (subjectController.text.trim().isEmpty) {
-          _showErrorSnackbar('Validation Error', 'Subject is required');
-          return;
-        }
+        // Subject is no longer required - removed validation
       }
 
       await updateUserData();
@@ -512,30 +543,105 @@ class ProfileController extends GetxController {
         currentUser.value!,
       );
 
-      // Update common fields
-      userData['fullName'] = fullNameController.text.trim();
-      userData['phone'] = phoneController.text.trim();
-      userData['updatedAt'] = FieldValue.serverTimestamp();
+      // Prepare update data
+      Map<String, dynamic> updateData = {
+        'fullName': fullNameController.text.trim(),
+        'phone': phoneController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-      // Update role-specific fields
+      // Add role-specific fields
       if (isTeacher.value) {
-        userData['department'] = departmentController.text.trim();
-        userData['subject'] = subjectController.text.trim();
-        userData['employeeId'] = employeeIdController.text.trim();
+        updateData['department'] = departmentController.text.trim();
+        // Subject is optional now
+        if (subjectController.text.trim().isNotEmpty) {
+          updateData['subject'] = subjectController.text.trim();
+        }
+        if (employeeIdController.text.trim().isNotEmpty) {
+          updateData['employeeId'] = employeeIdController.text.trim();
+        }
       } else if (isParent.value) {
-        userData['childClass'] = childClassController.text.trim();
+        updateData['childName'] = childNameController.text.trim();
+        updateData['childClass'] = childClassController.text.trim();
+        updateData['childDepartment'] = childDepartmentController.text.trim();
       }
 
-      String collection = isParent.value ? 'parents' : 'teachers';
+      print('Updating user data with UID: ${userUid.value}');
+      print('Is Teacher: ${isTeacher.value}, Is Parent: ${isParent.value}');
+      print('Update data: $updateData');
 
-      print('Updating user data in collection: $collection');
-      print('Updated data: $userData');
+      // Try to find and update in the correct collection
+      bool documentUpdated = false;
 
-      await _firestore
-          .collection(collection)
-          .doc(userUid.value)
-          .update(userData);
+      // Try teachers collection first if user is a teacher
+      if (isTeacher.value) {
+        try {
+          final teacherDoc = await _firestore
+              .collection('teachers')
+              .doc(userUid.value)
+              .get();
 
+          if (teacherDoc.exists) {
+            await _firestore
+                .collection('teachers')
+                .doc(userUid.value)
+                .update(updateData);
+            documentUpdated = true;
+            print('✅ Updated in teachers collection');
+          }
+        } catch (e) {
+          print('Teachers collection update failed: $e');
+        }
+      }
+
+      // Try parents collection if user is a parent and not updated yet
+      if (!documentUpdated && isParent.value) {
+        try {
+          final parentDoc = await _firestore
+              .collection('parents')
+              .doc(userUid.value)
+              .get();
+
+          if (parentDoc.exists) {
+            await _firestore
+                .collection('parents')
+                .doc(userUid.value)
+                .update(updateData);
+            documentUpdated = true;
+            print('✅ Updated in parents collection');
+          }
+        } catch (e) {
+          print('Parents collection update failed: $e');
+        }
+      }
+
+      // Try students collection if not updated yet
+      if (!documentUpdated) {
+        try {
+          final studentDoc = await _firestore
+              .collection('students')
+              .doc(userUid.value)
+              .get();
+
+          if (studentDoc.exists) {
+            await _firestore
+                .collection('students')
+                .doc(userUid.value)
+                .update(updateData);
+            documentUpdated = true;
+            print('✅ Updated in students collection');
+          }
+        } catch (e) {
+          print('Students collection update failed: $e');
+        }
+      }
+
+      if (!documentUpdated) {
+        throw Exception('User document not found in any collection');
+      }
+
+      // Update local user data
+      userData.addAll(updateData);
       currentUser.value = userData;
       print('User data updated successfully');
     } catch (e) {
@@ -656,12 +762,25 @@ class ProfileController extends GetxController {
   // Private helper methods for getters
   String _getFullName() {
     if (currentUser.value == null) return 'Loading...';
+    print("current user name😁: ${currentUser.value!['fullName']}");
     return currentUser.value!['fullName']?.toString() ?? 'No Name';
   }
 
+
   String _getDepartment() {
-    if (currentUser.value == null || !isTeacher.value) return 'N/A';
-    return currentUser.value!['department']?.toString() ?? 'No Department';
+    if (currentUser.value == null) return 'N/A';
+
+    if (isTeacher.value) {
+      // For teachers, show their own department
+      return currentUser.value!['department']?.toString() ?? 'No Department';
+    } else if (isParent.value) {
+      // For parents, show child's department inside studentData
+      final studentData = currentUser.value!['studentData'];
+      final department = studentData != null ? studentData['department'] : null;
+      return department?.toString() ?? 'No Department';
+    }
+
+    return 'N/A';
   }
 
   String _getPhone() {
@@ -686,12 +805,27 @@ class ProfileController extends GetxController {
 
   String _getChildName() {
     if (currentUser.value == null || !isParent.value) return 'N/A';
-    return currentUser.value!['childName']?.toString() ?? 'No Child Name';
+
+    final studentData = currentUser.value!['studentData'];
+    final studentName = studentData != null ? studentData['studentName'] : null;
+
+    return studentName?.toString() ?? 'No Child Name';
   }
 
   String _getChildClass() {
     if (currentUser.value == null || !isParent.value) return 'N/A';
     return currentUser.value!['childClass']?.toString() ?? 'No Class';
+  }
+
+  String _getChildDepartment() {
+    if (currentUser.value == null || !isParent.value) return 'N/A';
+
+    final studentData = currentUser.value!['studentData'];
+    final department = studentData != null ? studentData['department'] : null;
+    print("this is department $department");
+    print("this is student data: $studentData");
+
+    return department?.toString() ?? 'No Department';
   }
 
   // Helper methods for showing snackbars

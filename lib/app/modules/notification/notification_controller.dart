@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:convert';
 
 enum NotificationType {
   leaveApproved,
@@ -27,6 +28,7 @@ class NotificationModel {
   final NotificationType type;
   final DateTime timestamp;
   final bool isRead;
+  final bool isDeleted;
   final String? relatedLeaveId;
   final String? relatedStudentId;
   final String? relatedStudentName;
@@ -40,12 +42,83 @@ class NotificationModel {
     required this.type,
     required this.timestamp,
     this.isRead = false,
+    this.isDeleted = false,
     this.relatedLeaveId,
     this.relatedStudentId,
     this.relatedStudentName,
     required this.backgroundColor,
     required this.icon,
   });
+
+  // Convert to Map for storage
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'message': message,
+      'type': type.toString(),
+      'timestamp': timestamp.millisecondsSinceEpoch,
+      'isRead': isRead,
+      'isDeleted': isDeleted,
+      'relatedLeaveId': relatedLeaveId,
+      'relatedStudentId': relatedStudentId,
+      'relatedStudentName': relatedStudentName,
+      'backgroundColor': backgroundColor.value,
+      'iconCodePoint': icon.codePoint,
+    };
+  }
+
+  // Create from Map for retrieval
+  factory NotificationModel.fromMap(Map<String, dynamic> map) {
+    return NotificationModel(
+      id: map['id'],
+      title: map['title'],
+      message: map['message'],
+      type: NotificationType.values.firstWhere(
+        (e) => e.toString() == map['type'],
+        orElse: () => NotificationType.general,
+      ),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
+      isRead: map['isRead'] ?? false,
+      isDeleted: map['isDeleted'] ?? false,
+      relatedLeaveId: map['relatedLeaveId'],
+      relatedStudentId: map['relatedStudentId'],
+      relatedStudentName: map['relatedStudentName'],
+      backgroundColor: Color(map['backgroundColor']),
+      icon: IconData(map['iconCodePoint'], fontFamily: 'MaterialIcons'),
+    );
+  }
+
+  // Create a copy with updated properties
+  NotificationModel copyWith({
+    String? id,
+    String? title,
+    String? message,
+    NotificationType? type,
+    DateTime? timestamp,
+    bool? isRead,
+    bool? isDeleted,
+    String? relatedLeaveId,
+    String? relatedStudentId,
+    String? relatedStudentName,
+    Color? backgroundColor,
+    IconData? icon,
+  }) {
+    return NotificationModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      type: type ?? this.type,
+      timestamp: timestamp ?? this.timestamp,
+      isRead: isRead ?? this.isRead,
+      isDeleted: isDeleted ?? this.isDeleted,
+      relatedLeaveId: relatedLeaveId ?? this.relatedLeaveId,
+      relatedStudentId: relatedStudentId ?? this.relatedStudentId,
+      relatedStudentName: relatedStudentName ?? this.relatedStudentName,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      icon: icon ?? this.icon,
+    );
+  }
 
   // Factory method to create from LeaveModel
   factory NotificationModel.fromLeaveModel(LeaveModel leave) {
@@ -125,19 +198,22 @@ class NotificationModel {
     switch (leave.status.toLowerCase()) {
       case 'approved':
         title = 'Child\'s Leave Approved';
-        message = '${leave.fullName}\'s ${leave.leaveType} leave has been approved';
+        message =
+            '${leave.fullName}\'s ${leave.leaveType} leave has been approved';
         backgroundColor = const Color(0xFF4CAF50);
         icon = Icons.check_circle;
         break;
       case 'rejected':
         title = 'Child\'s Leave Rejected';
-        message = '${leave.fullName}\'s ${leave.leaveType} leave has been rejected';
+        message =
+            '${leave.fullName}\'s ${leave.leaveType} leave has been rejected';
         backgroundColor = const Color(0xFFD32F2F);
         icon = Icons.cancel;
         break;
       default:
         title = 'Child\'s Leave Update';
-        message = '${leave.fullName}\'s ${leave.leaveType} leave status updated to ${leave.status}';
+        message =
+            '${leave.fullName}\'s ${leave.leaveType} leave status updated to ${leave.status}';
         backgroundColor = Colors.orange;
         icon = Icons.update;
     }
@@ -157,10 +233,15 @@ class NotificationModel {
   }
 
   // Factory method for profile updates
-  factory NotificationModel.profileUpdate(String message, {String? studentName}) {
+  factory NotificationModel.profileUpdate(
+    String message, {
+    String? studentName,
+  }) {
     return NotificationModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: studentName != null ? '${studentName}\'s Profile Updated' : 'Profile Updated',
+      title: studentName != null
+          ? '${studentName}\'s Profile Updated'
+          : 'Profile Updated',
       message: message,
       type: NotificationType.profileUpdate,
       timestamp: DateTime.now(),
@@ -221,6 +302,11 @@ class NotificationController extends GetxController {
   StreamSubscription? _profileSubscription;
   StreamSubscription? _allStudentsLeaveSubscription;
 
+  // Storage keys
+  String get _storageKey => 'notifications_${uid.value}';
+  String get _readNotificationsKey => 'read_notifications_${uid.value}';
+  String get _deletedNotificationsKey => 'deleted_notifications_${uid.value}';
+
   @override
   void onInit() {
     super.onInit();
@@ -240,7 +326,7 @@ class NotificationController extends GetxController {
     try {
       isLoading.value = true;
       await _getUserDetailsFromPrefs();
-      
+
       if (uid.value.isEmpty) {
         Get.snackbar(
           'Error',
@@ -251,6 +337,9 @@ class NotificationController extends GetxController {
         );
         return;
       }
+
+      // Load existing notifications from storage first
+      await _loadNotificationsFromStorage();
 
       // Initialize based on role
       if (userRole.value == 'parent' || isParent.value) {
@@ -271,6 +360,112 @@ class NotificationController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // Load notifications from SharedPreferences
+  Future<void> _loadNotificationsFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notificationsJson = prefs.getString(_storageKey);
+
+      if (notificationsJson != null) {
+        final List<dynamic> notificationsList = json.decode(notificationsJson);
+        final List<NotificationModel> loadedNotifications = notificationsList
+            .map((json) => NotificationModel.fromMap(json))
+            .where(
+              (notif) => !notif.isDeleted,
+            ) // Filter out deleted notifications
+            .toList();
+
+        notifications.value = loadedNotifications;
+        _updateUnreadCount();
+        print(
+          '✅ Loaded ${loadedNotifications.length} notifications from storage',
+        );
+      }
+    } catch (e) {
+      print('❌ Error loading notifications from storage: $e');
+    }
+  }
+
+  // Save notifications to SharedPreferences
+  Future<void> _saveNotificationsToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final notificationsJson = json.encode(
+        notifications.map((notif) => notif.toMap()).toList(),
+      );
+      await prefs.setString(_storageKey, notificationsJson);
+      print('✅ Saved ${notifications.length} notifications to storage');
+    } catch (e) {
+      print('❌ Error saving notifications to storage: $e');
+    }
+  }
+
+  // Save notification state to Firestore (for sync across devices)
+  Future<void> _saveNotificationStateToFirestore(
+    String notificationId, {
+    bool? isRead,
+    bool? isDeleted,
+  }) async {
+    try {
+      String collection = isTeacher.value ? 'teachers' : 'students';
+      String userId = uid.value;
+
+      // For parents, use the student's collection
+      if (isParent.value && parentStudentData.value != null) {
+        collection = 'students';
+        userId = parentStudentData.value!['studentId'];
+      }
+
+      Map<String, dynamic> updateData = {};
+      if (isRead != null) updateData['isRead'] = isRead;
+      if (isDeleted != null) updateData['isDeleted'] = isDeleted;
+      updateData['lastUpdated'] = FieldValue.serverTimestamp();
+
+      await _firestore
+          .collection(collection)
+          .doc(userId)
+          .collection('leave')
+          .doc(notificationId)
+          .set(updateData, SetOptions(merge: true));
+
+      print('✅ Saved notification state to Firestore');
+    } catch (e) {
+      print('❌ Error saving notification state to Firestore: $e');
+    }
+  }
+
+  // Load notification states from Firestore
+  Future<Map<String, Map<String, dynamic>>>
+  _loadNotificationStatesFromFirestore() async {
+    try {
+      String collection = isTeacher.value ? 'teachers' : 'students';
+      String userId = uid.value;
+
+      // For parents, use the student's collection
+      if (isParent.value && parentStudentData.value != null) {
+        collection = 'students';
+        userId = parentStudentData.value!['studentId'];
+      }
+
+      final snapshot = await _firestore
+          .collection(collection)
+          .doc(userId)
+          .collection('notification_states')
+          .get();
+
+      Map<String, Map<String, dynamic>> states = {};
+      for (var doc in snapshot.docs) {
+        states[doc.id] = doc.data();
+      }
+
+      print('✅ Loaded ${states.length} notification states from Firestore');
+      return states;
+    } catch (e) {
+      print('❌ Error loading notification states from Firestore: $e');
+      return {};
     }
   }
 
@@ -299,14 +494,17 @@ class NotificationController extends GetxController {
 
     // Find student data using parent email
     final studentData = await _verifyParentEmailInStudents(userEmail.value);
-    
+
     if (studentData != null) {
       parentStudentData.value = studentData;
       student.value = Student.fromMap(studentData);
 
+      // Load notification states from Firestore
+      final states = await _loadNotificationStatesFromFirestore();
+
       // Setup leave notifications for parent's child
-      _setupParentLeaveNotifications(studentData['studentId']);
-      
+      _setupParentLeaveNotifications(studentData['studentId'], states);
+
       // Setup profile notifications for parent's child
       _setupParentProfileNotifications(studentData['studentId']);
     } else {
@@ -323,12 +521,15 @@ class NotificationController extends GetxController {
   // Initialize teacher-specific notifications
   Future<void> _initializeTeacherNotifications() async {
     print('👨‍💼 Initializing teacher notifications...');
-    
+
     await _fetchCurrentUserData();
-    
+
+    // Load notification states from Firestore
+    final states = await _loadNotificationStatesFromFirestore();
+
     // Setup notifications for all students' leave requests
-    _setupTeacherLeaveNotifications();
-    
+    _setupTeacherLeaveNotifications(states);
+
     // Setup profile notifications for teacher
     _setupProfileNotifications(uid.value);
   }
@@ -336,18 +537,23 @@ class NotificationController extends GetxController {
   // Initialize student-specific notifications
   Future<void> _initializeStudentNotifications() async {
     print('👨‍🎓 Initializing student notifications...');
-    
+
     await _fetchCurrentUserData();
-    
+
+    // Load notification states from Firestore
+    final states = await _loadNotificationStatesFromFirestore();
+
     // Setup leave notifications for student's own leaves
-    _setupStudentLeaveNotifications(uid.value);
-    
+    _setupStudentLeaveNotifications(uid.value, states);
+
     // Setup profile notifications for student
     _setupProfileNotifications(uid.value);
   }
 
   // Verify parent email in students collection
-  Future<Map<String, dynamic>?> _verifyParentEmailInStudents(String parentEmail) async {
+  Future<Map<String, dynamic>?> _verifyParentEmailInStudents(
+    String parentEmail,
+  ) async {
     try {
       final querySnapshot = await _firestore
           .collection('students')
@@ -388,7 +594,10 @@ class NotificationController extends GetxController {
   }
 
   // Setup leave notifications for parent's child
-  void _setupParentLeaveNotifications(String studentId) {
+  void _setupParentLeaveNotifications(
+    String studentId,
+    Map<String, Map<String, dynamic>> states,
+  ) {
     try {
       _leaveSubscription?.cancel();
 
@@ -410,7 +619,21 @@ class NotificationController extends GetxController {
                 );
 
                 // Create parent-specific notification
-                leaveNotifications.add(NotificationModel.parentLeaveUpdate(leave));
+                final notification = NotificationModel.parentLeaveUpdate(leave);
+
+                // Apply stored state if exists
+                final state = states[notification.id];
+                if (state != null) {
+                  final updatedNotification = notification.copyWith(
+                    isRead: state['isRead'] ?? false,
+                    isDeleted: state['isDeleted'] ?? false,
+                  );
+                  if (!updatedNotification.isDeleted) {
+                    leaveNotifications.add(updatedNotification);
+                  }
+                } else {
+                  leaveNotifications.add(notification);
+                }
               }
 
               _updateLeaveNotifications(leaveNotifications);
@@ -425,7 +648,10 @@ class NotificationController extends GetxController {
   }
 
   // Setup leave notifications for student's own leaves
-  void _setupStudentLeaveNotifications(String studentId) {
+  void _setupStudentLeaveNotifications(
+    String studentId,
+    Map<String, Map<String, dynamic>> states,
+  ) {
     try {
       _leaveSubscription?.cancel();
 
@@ -440,13 +666,26 @@ class NotificationController extends GetxController {
               final List<NotificationModel> leaveNotifications = [];
 
               for (var leaveDoc in snapshot.docs) {
-                final leave = LeaveModel.fromFirestore(leaveDoc).copyWith(
-                  id: leaveDoc.id,
-                  uid: studentId,
-                );
+                final leave = LeaveModel.fromFirestore(
+                  leaveDoc,
+                ).copyWith(id: leaveDoc.id, uid: studentId);
 
                 // Create student notification
-                leaveNotifications.add(NotificationModel.fromLeaveModel(leave));
+                final notification = NotificationModel.fromLeaveModel(leave);
+
+                // Apply stored state if exists
+                final state = states[notification.id];
+                if (state != null) {
+                  final updatedNotification = notification.copyWith(
+                    isRead: state['isRead'] ?? false,
+                    isDeleted: state['isDeleted'] ?? false,
+                  );
+                  if (!updatedNotification.isDeleted) {
+                    leaveNotifications.add(updatedNotification);
+                  }
+                } else {
+                  leaveNotifications.add(notification);
+                }
               }
 
               _updateLeaveNotifications(leaveNotifications);
@@ -461,7 +700,9 @@ class NotificationController extends GetxController {
   }
 
   // Setup leave notifications for teacher (all students)
-  void _setupTeacherLeaveNotifications() {
+  void _setupTeacherLeaveNotifications(
+    Map<String, Map<String, dynamic>> states,
+  ) {
     try {
       _allStudentsLeaveSubscription?.cancel();
 
@@ -490,7 +731,21 @@ class NotificationController extends GetxController {
                   );
 
                   // Create teacher notification for new leave requests
-                  allNotifications.add(NotificationModel.newLeaveRequest(leave));
+                  final notification = NotificationModel.newLeaveRequest(leave);
+
+                  // Apply stored state if exists
+                  final state = states[notification.id];
+                  if (state != null) {
+                    final updatedNotification = notification.copyWith(
+                      isRead: state['isRead'] ?? false,
+                      isDeleted: state['isDeleted'] ?? false,
+                    );
+                    if (!updatedNotification.isDeleted) {
+                      allNotifications.add(updatedNotification);
+                    }
+                  } else {
+                    allNotifications.add(notification);
+                  }
                 }
               } catch (e) {
                 print('❌ Error processing student ${studentDoc.id}: $e');
@@ -589,13 +844,14 @@ class NotificationController extends GetxController {
   // Update leave notifications in the main list
   void _updateLeaveNotifications(List<NotificationModel> leaveNotifications) {
     // Remove existing leave notifications
-    notifications.removeWhere((notif) => 
-      notif.type == NotificationType.leaveApproved ||
-      notif.type == NotificationType.leaveRejected ||
-      notif.type == NotificationType.leavePending ||
-      notif.type == NotificationType.leaveSubmitted ||
-      notif.type == NotificationType.newLeaveRequest ||
-      notif.type == NotificationType.leaveStatusChanged
+    notifications.removeWhere(
+      (notif) =>
+          notif.type == NotificationType.leaveApproved ||
+          notif.type == NotificationType.leaveRejected ||
+          notif.type == NotificationType.leavePending ||
+          notif.type == NotificationType.leaveSubmitted ||
+          notif.type == NotificationType.newLeaveRequest ||
+          notif.type == NotificationType.leaveStatusChanged,
     );
 
     // Add new leave notifications
@@ -605,6 +861,7 @@ class NotificationController extends GetxController {
     notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     _updateUnreadCount();
+    _saveNotificationsToStorage();
   }
 
   // Add unique notification (avoid duplicates)
@@ -621,11 +878,14 @@ class NotificationController extends GetxController {
     if (!recentSimilar) {
       notifications.insert(0, notification);
       _updateUnreadCount();
+      _saveNotificationsToStorage();
     }
   }
 
   void _updateUnreadCount() {
-    unreadCount.value = notifications.where((notif) => !notif.isRead).length;
+    unreadCount.value = notifications
+        .where((notif) => !notif.isRead && !notif.isDeleted)
+        .length;
   }
 
   // Public methods for managing notifications
@@ -635,8 +895,10 @@ class NotificationController extends GetxController {
     isRefreshing.value = false;
   }
 
-  void markAsRead(String notificationId) {
-    final index = notifications.indexWhere((notif) => notif.id == notificationId);
+  Future<void> markAsRead(String notificationId) async {
+    final index = notifications.indexWhere(
+      (notif) => notif.id == notificationId,
+    );
     if (index != -1 && !notifications[index].isRead) {
       final updatedNotification = NotificationModel(
         id: notifications[index].id,
@@ -654,10 +916,13 @@ class NotificationController extends GetxController {
 
       notifications[index] = updatedNotification;
       _updateUnreadCount();
+      // Persist read state in Firestore
+      await _saveNotificationStateToFirestore(notificationId, isRead: true);
     }
   }
 
-  void markAllAsRead() {
+  Future<void> markAllAsRead() async {
+    List<Future> futures = [];
     for (int i = 0; i < notifications.length; i++) {
       if (!notifications[i].isRead) {
         final updatedNotification = NotificationModel(
@@ -674,17 +939,30 @@ class NotificationController extends GetxController {
           icon: notifications[i].icon,
         );
         notifications[i] = updatedNotification;
+        // Persist read state in Firestore
+        futures.add(
+          _saveNotificationStateToFirestore(notifications[i].id, isRead: true),
+        );
       }
     }
+    await Future.wait(futures);
     _updateUnreadCount();
   }
 
-  void deleteNotification(String notificationId) {
+  Future<void> deleteNotification(String notificationId) async {
+    // Mark as deleted in Firestore
+    await _saveNotificationStateToFirestore(notificationId, isDeleted: true);
     notifications.removeWhere((notif) => notif.id == notificationId);
     _updateUnreadCount();
   }
 
-  void clearAllNotifications() {
+  Future<void> clearAllNotifications() async {
+    // Mark all as deleted in Firestore
+    List<Future> futures = [];
+    for (final notif in notifications) {
+      futures.add(_saveNotificationStateToFirestore(notif.id, isDeleted: true));
+    }
+    await Future.wait(futures);
     notifications.clear();
     unreadCount.value = 0;
   }
@@ -709,14 +987,17 @@ class NotificationController extends GetxController {
   }
 
   List<NotificationModel> getLeaveNotifications() {
-    return notifications.where((notif) => 
-      notif.type == NotificationType.leaveApproved ||
-      notif.type == NotificationType.leaveRejected ||
-      notif.type == NotificationType.leavePending ||
-      notif.type == NotificationType.leaveSubmitted ||
-      notif.type == NotificationType.newLeaveRequest ||
-      notif.type == NotificationType.leaveStatusChanged
-    ).toList();
+    return notifications
+        .where(
+          (notif) =>
+              notif.type == NotificationType.leaveApproved ||
+              notif.type == NotificationType.leaveRejected ||
+              notif.type == NotificationType.leavePending ||
+              notif.type == NotificationType.leaveSubmitted ||
+              notif.type == NotificationType.newLeaveRequest ||
+              notif.type == NotificationType.leaveStatusChanged,
+        )
+        .toList();
   }
 
   // Helper getters
@@ -737,8 +1018,9 @@ class NotificationController extends GetxController {
   bool get hasNotifications => notifications.isNotEmpty;
   bool get hasUnreadNotifications => unreadCount.value > 0;
   bool get isCurrentUserParent => userRole.value == 'parent' || isParent.value;
-  bool get isCurrentUserTeacher => userRole.value == 'teacher' || isTeacher.value;
-  
+  bool get isCurrentUserTeacher =>
+      userRole.value == 'teacher' || isTeacher.value;
+
   String get currentUserRole => userRole.value;
   String get currentUserEmail => userEmail.value;
   String get currentUserId => uid.value;

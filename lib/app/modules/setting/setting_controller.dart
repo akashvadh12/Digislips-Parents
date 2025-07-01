@@ -636,24 +636,20 @@ This policy is effective as of the last updated date and will remain in effect e
   // Perform logout operation
   Future<void> _performLogout() async {
     try {
-      Get.back(); // Close dialog
+      Get.back(); // Close any open dialog
       isLoading.value = true;
 
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
 
-      // Clear all stored preferences
+      // Clear all stored SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await prefs.clear(); // 🔥 Clears everything
 
-      // Recreate essential keys with default values if needed
+      // (Optional) Recreate default values only if your app relies on them immediately
       await prefs.setBool('isLoggedIn', false);
-      await prefs.setString('userRole', '');
-      await prefs.setString('userUid', '');
-      await prefs.setString('userEmail', '');
-      // Add more keys here if your app depends on them immediately after launch
 
-      // Clear in-memory user data (GetX observables, etc.)
+      // Clear in-memory data (GetX observables)
       currentUser.value = null;
       userRole.value = '';
       userUid.value = '';
@@ -780,8 +776,8 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.error.withOpacity(0.1),
-      colorText: AppColors.error,
+      backgroundColor: AppColors.error,
+      colorText: AppColors.background,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
       borderRadius: 12,
@@ -794,8 +790,8 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.primary.withOpacity(0.1),
-      colorText: AppColors.primary,
+      backgroundColor: AppColors.error,
+      colorText: AppColors.background,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
       borderRadius: 12,

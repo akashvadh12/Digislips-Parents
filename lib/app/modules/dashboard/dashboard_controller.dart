@@ -84,6 +84,7 @@ class LeaveApplication {
   }
 }
 
+// Enhanced HomeController with proper data cleanup
 class HomeController extends GetxController {
   var selectedIndex = 0.obs;
   var isLoading = true.obs;
@@ -92,6 +93,7 @@ class HomeController extends GetxController {
   var student = Rxn<Student>(); // Current logged-in user data
   var parentStudentData =
       Rxn<Map<String, dynamic>>(); // Student data for parent
+  var parentData = Rxn<Map<String, dynamic>>(); // Parent's own data
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LeaveService _leaveService = LeaveService();
@@ -109,13 +111,20 @@ class HomeController extends GetxController {
   // Stream subscription for leave applications
   StreamSubscription? _leaveSubscription;
 
-  void _resetUserData() {
-    // Cancel subscriptions
+  // Add a flag to track if controller is initialized
+  var _isInitialized = false.obs;
+
+  void resetUserData() {
+    print('🔄 Resetting user data...');
+
+    // Cancel and clear subscriptions
     _leaveSubscription?.cancel();
     _leaveSubscription = null;
-    // Reset all user-related Rx variables
+
+    // Reset all Rx variables to their initial state
     student.value = null;
     parentStudentData.value = null;
+    parentData.value = null;
     recentLeaveApplications.clear();
     userRole.value = '';
     isParent.value = false;
@@ -125,25 +134,56 @@ class HomeController extends GetxController {
     isLoading.value = true;
     isLoadingLeaves.value = false;
     isVerifyingEmail.value = false;
+
+    // Reset initialization flag
+    _isInitialized.value = false;
+
+    print('✅ User data reset complete');
   }
 
   @override
   void onInit() {
     super.onInit();
-    _resetUserData(); // Ensure clean state on controller init
+    print('🚀 HomeController onInit called');
+    resetUserData();
     getUserDetailsFromPrefs();
   }
 
   @override
   void onClose() {
+    print('🔚 HomeController onClose called');
     _leaveSubscription?.cancel();
     super.onClose();
   }
 
+  // Method to force reinitialize the controller
+  void forceReinitialize() {
+    print('🔄 Force reinitializing HomeController...');
+    resetUserData();
+    getUserDetailsFromPrefs();
+  }
+
+  // Method to be called when user logs out
+  void onUserLogout() {
+    print('👋 User logging out - cleaning up controller data');
+  }
+
+  // Method to be called when new user logs in
+  void onUserLogin() {
+    print('👤 New user logging in - reinitializing controller');
+    resetUserData();
+    getUserDetailsFromPrefs();
+  }
+
   // Get user details from SharedPreferences and initialize based on role
   Future<void> getUserDetailsFromPrefs() async {
-    _resetUserData(); // Clear previous user data before loading new
     try {
+      // Ensure we start with clean state
+      if (_isInitialized.value) {
+        print('⚠️ Controller already initialized, resetting first...');
+        resetUserData();
+      }
+
       final prefs = await SharedPreferences.getInstance();
 
       // Get stored values
@@ -153,21 +193,9 @@ class HomeController extends GetxController {
       bool? storedIsTeacher = prefs.getBool('isTeacher');
       String? storedEmail = prefs.getString('Email');
 
-      // Update reactive variables
-      uid.value = storedUid ?? '';
-      userRole.value = storedUserRole ?? '';
-      isParent.value = storedIsParent ?? false;
-      isTeacher.value = storedIsTeacher ?? false;
-      userEmail.value = storedEmail ?? '';
-
-      // Print for debugging
-      print("Email is 😁😁👌 ${userEmail.value}");
-      print('UID😁😁😁👍: ${uid.value}');
-      print('Role😊👌👌: ${userRole.value}');
-      print('Is Parent😁: ${isParent.value}');
-      print('Is Teacher😁: ${isTeacher.value}');
-
-      if (uid.value.isEmpty) {
+      // Validate that we have essential data
+      if (storedUid == null || storedUid.isEmpty) {
+        print('❌ No valid UID found in preferences');
         Get.snackbar(
           'Error',
           'User not found. Please login again.',
@@ -178,6 +206,21 @@ class HomeController extends GetxController {
         return;
       }
 
+      // Update reactive variables
+      uid.value = storedUid;
+      userRole.value = storedUserRole ?? '';
+      isParent.value = storedIsParent ?? false;
+      isTeacher.value = storedIsTeacher ?? false;
+      userEmail.value = storedEmail ?? '';
+
+      // Print for debugging
+      print("🔍 Loading user data:");
+      print("  UID: ${uid.value}");
+      print("  Email: ${userEmail.value}");
+      print("  Role: ${userRole.value}");
+      print("  Is Parent: ${isParent.value}");
+      print("  Is Teacher: ${isTeacher.value}");
+
       // Initialize based on role
       if (userRole.value == 'parent' || isParent.value) {
         await initializeParentData();
@@ -186,58 +229,149 @@ class HomeController extends GetxController {
       } else {
         await fetchCurrentUserData();
       }
+
+      _isInitialized.value = true;
+      print('✅ Controller initialization complete');
     } catch (e) {
       print('❌ Error getting user details from prefs: $e');
       Get.snackbar(
         'Error',
-        'Failed to load user data: $e',
+        'Failed to load user data. Please try logging in again.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      isLoading.value = false;
     }
   }
 
-  // Initialize parent-specific data
-  Future<void> initializeParentData() async {
-    print('🔄 Initializing parent data...');
+  // Fetch parent's own data from Firestore
+  Future<Map<String, dynamic>?> _fetchParentData() async {
+    try {
+      print('🔍 Fetching parent data for UID: ${uid.value}');
 
-    // Verify parent email and get student data
-    final studentData = await _verifyParentEmailInStudents(userEmail.value);
+      // Try to fetch from parents collection first
+      DocumentSnapshot parentDoc = await _firestore
+          .collection('parents')
+          .doc(uid.value)
+          .get();
 
-    if (studentData != null) {
-      parentStudentData.value = studentData;
+      if (parentDoc.exists && parentDoc.data() != null) {
+        Map<String, dynamic> parentData = Map<String, dynamic>.from(
+          parentDoc.data() as Map<String, dynamic>,
+        );
+        parentData['uid'] = uid.value;
+        print(
+          '✅ Parent data found in parents collection: ${parentData['fullName']}',
+        );
+        return parentData;
+      }
 
-      // Create a Student object from the student data for consistency
-      student.value = Student.fromMap(studentData);
-
+      // If not found in parents collection, try other collections
       print(
-        '✅ Parent data initialized for student: ${studentData['fullName']}',
+        'Parent not found in parents collection, trying other collections...',
       );
 
-      // Fetch leave applications for this specific student
-      fetchParentStudentLeaveApplications(studentData['studentId']);
-    } else {
+      // Try teachers collection
+      DocumentSnapshot teacherDoc = await _firestore
+          .collection('teachers')
+          .doc(uid.value)
+          .get();
+
+      if (teacherDoc.exists && teacherDoc.data() != null) {
+        Map<String, dynamic> teacherData = Map<String, dynamic>.from(
+          teacherDoc.data() as Map<String, dynamic>,
+        );
+        teacherData['uid'] = uid.value;
+        print(
+          '✅ Parent data found in teachers collection: ${teacherData['fullName']}',
+        );
+        return teacherData;
+      }
+
+      // Try students collection
+      DocumentSnapshot studentDoc = await _firestore
+          .collection('students')
+          .doc(uid.value)
+          .get();
+
+      if (studentDoc.exists && studentDoc.data() != null) {
+        Map<String, dynamic> studentData = Map<String, dynamic>.from(
+          studentDoc.data() as Map<String, dynamic>,
+        );
+        studentData['uid'] = uid.value;
+        print(
+          '✅ Parent data found in students collection: ${studentData['fullName']}',
+        );
+        return studentData;
+      }
+
+      print('❌ Parent data not found in any collection');
+      return null;
+    } catch (e) {
+      print('❌ Error fetching parent data: $e');
+      return null;
+    }
+  }
+
+  // Enhanced initializeParentData with better error handling
+  Future<void> initializeParentData() async {
+    print('🔄 Initializing parent data for UID: ${uid.value}');
+
+    try {
+      isLoading.value = true;
+
+      // First, fetch parent's own data
+      final fetchedParentData = await _fetchParentData();
+      if (fetchedParentData != null) {
+        parentData.value = fetchedParentData;
+        print('✅ Parent profile loaded: ${fetchedParentData['fullName']}');
+      }
+
+      // Then verify parent email and get STUDENT data (not mixed data)
+      final studentData = await _verifyParentEmailInStudents(userEmail.value);
+
+      if (studentData != null) {
+        // Store ONLY student data in parentStudentData
+        parentStudentData.value = studentData;
+
+        // Create a Student object from the student data for consistency
+        student.value = Student.fromMap(studentData);
+
+        print(
+          '✅ Parent data initialized for student: ${studentData['fullName']}',
+        );
+        print(
+          '✅ Parent\'s own name: ${parentData.value?['fullName'] ?? 'Not found'}',
+        );
+
+        // Fetch leave applications for this specific student
+        fetchParentStudentLeaveApplications(studentData['studentId']);
+      } else {
+        print('❌ No student found with parent email: ${userEmail.value}');
+        Get.snackbar(
+          'Error',
+          'No student found with your parent email. Please contact administrator.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      print('❌ Error initializing parent data: $e');
       Get.snackbar(
         'Error',
-        'No student found with your parent email. Please contact administrator.',
+        'Failed to initialize parent data: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    } finally {
+      isLoading.value = false;
     }
-
-    isLoading.value = false;
   }
 
-  // Initialize teacher-specific data
-  Future<void> initializeTeacherData() async {
-    print('🔄 Initializing teacher data...');
-    await fetchCurrentTeacherData();
-    fetchAllStudentsLeaveApplications();
-  }
-
-  // Verify parent email in students collection
+  // Verify parent email in students collection to return ONLY student data
   Future<Map<String, dynamic>?> _verifyParentEmailInStudents(
     String parentEmail,
   ) async {
@@ -254,13 +388,17 @@ class HomeController extends GetxController {
 
       if (querySnapshot.docs.isNotEmpty) {
         // Found student(s) with matching parent email
-        final studentData = querySnapshot.docs.first.data();
+        final studentData = Map<String, dynamic>.from(
+          querySnapshot.docs.first.data(),
+        );
         studentData['studentId'] =
             querySnapshot.docs.first.id; // Add document ID
 
         print(
           '✅ Found student with matching parent email: ${studentData['fullName']}',
         );
+        print('🔍 Student data keys: ${studentData.keys.toList()}');
+
         return studentData;
       } else {
         print('❌ No student found with parent email: $parentEmail');
@@ -272,6 +410,13 @@ class HomeController extends GetxController {
     } finally {
       isVerifyingEmail.value = false;
     }
+  }
+
+  // Initialize teacher-specific data
+  Future<void> initializeTeacherData() async {
+    print('🔄 Initializing teacher data...');
+    await fetchCurrentTeacherData();
+    fetchAllStudentsLeaveApplications();
   }
 
   // Fetch leave applications for parent's specific student
@@ -601,6 +746,13 @@ class HomeController extends GetxController {
     }
   }
 
+  // Method to refresh all data (useful for debugging)
+  Future<void> refreshAllData() async {
+    print('🔄 Refreshing all data...');
+    resetUserData();
+    await getUserDetailsFromPrefs();
+  }
+
   void changeBottomNavIndex(int index) {
     selectedIndex.value = index;
   }
@@ -617,17 +769,19 @@ class HomeController extends GetxController {
     Get.to(ProfileScreen());
   }
 
+  // Enhanced logout method
   void onLogout() async {
     try {
-      _resetUserData(); // Clear all user/session data
-      _leaveSubscription?.cancel();
-      _leaveSubscription = null;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      // Remove HomeController from memory so a new one is created on next login
-      Get.delete<HomeController>(force: true);
+      print('🚪 Initiating logout process...');
+      // Clean up controller data first
+      onUserLogout();
+
+      // Delete this controller instance so a new one is created on next login
+
+      // Navigate to logout page
       Get.to(LogoutPage());
     } catch (e) {
+      print('❌ Error during logout: $e');
       Get.snackbar(
         'Error',
         'Failed to logout: $e',
@@ -646,16 +800,56 @@ class HomeController extends GetxController {
     return student.value?.fullName ?? 'User';
   }
 
-  // Get current user name (the logged-in user, not the student)
+  // Updated currentUserName getter - FIXED VERSION
   String get currentUserName {
     if (isParent.value) {
-      // For parents, try to get parent name from student data or use email
-      if (parentStudentData.value != null) {
-        return parentStudentData.value!['parentName'] ??
-            parentStudentData.value!['parentEmail']?.split('@')[0] ??
-            'Parent';
+      // For parents, first try to get from parent's own data
+      if (parentData.value != null && parentData.value!['fullName'] != null) {
+        print(
+          '🔍 Getting parent name from parentData: ${parentData.value!['fullName']}',
+        );
+        return parentData.value!['fullName'];
       }
-      return userEmail.value.split('@')[0];
+
+      // Second priority: Check if parentStudentData has parent's fullName
+      if (parentStudentData.value != null) {
+        print('🔍 parentStudentData contains: ${parentStudentData.value}');
+
+        // The issue is here - parentStudentData actually contains the parent's fullName
+        // Check if this data has parent-specific fields
+        if (parentStudentData.value!.containsKey('parentUid') ||
+            parentStudentData.value!.containsKey('parentAccountCreated')) {
+          // This means parentStudentData actually contains parent data
+          String? parentFullName = parentStudentData.value!['fullName'];
+          if (parentFullName != null && parentFullName.isNotEmpty) {
+            print(
+              '✅ Found parent fullName in parentStudentData: $parentFullName',
+            );
+            print(parentStudentData.value);
+            return parentFullName;
+          }
+        }
+
+        // Try different possible fields for parent name
+        String? parentName =
+            parentStudentData.value!['parentName'] ??
+            parentStudentData.value!['fatherName'] ??
+            parentStudentData.value!['motherName'] ??
+            parentStudentData.value!['guardianName'];
+
+        if (parentName != null && parentName.isNotEmpty) {
+          print('✅ Found parent name in alternate fields: $parentName');
+          return parentName;
+        }
+      }
+
+      // Final fallback to email username
+      String emailName = userEmail.value
+          .split('@')[0]
+          .replaceAll('.', ' ')
+          .toUpperCase();
+      print('⚠️ Using email fallback for parent name: $emailName');
+      return emailName;
     } else if (isTeacher.value) {
       // For teachers, get teacher's own name from their profile
       return student.value?.fullName ?? userEmail.value.split('@')[0];
@@ -733,15 +927,30 @@ class HomeController extends GetxController {
   }
 
   String? get profileImageUrl {
-    if (isParent.value && parentStudentData.value != null) {
-      return parentStudentData.value!['profileImageUrl'];
+    if (isParent.value) {
+      // For parents, try to get parent's profile image first
+      if (parentData.value != null &&
+          parentData.value!['profileImageUrl'] != null) {
+        return parentData.value!['profileImageUrl'];
+      }
+      // Fallback to student's image
+      if (parentStudentData.value != null) {
+        return parentStudentData.value!['profileImageUrl'];
+      }
     }
     return student.value?.profileImageUrl;
   }
 
   bool get isProfileComplete {
-    if (isParent.value && parentStudentData.value != null) {
-      return parentStudentData.value!['profileComplete'] ?? false;
+    if (isParent.value) {
+      // For parents, check if parent profile is complete
+      if (parentData.value != null) {
+        return parentData.value!['profileComplete'] ?? false;
+      }
+      // Fallback to student data
+      if (parentStudentData.value != null) {
+        return parentStudentData.value!['profileComplete'] ?? false;
+      }
     }
     return student.value?.profileComplete ?? false;
   }

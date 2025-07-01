@@ -283,12 +283,13 @@ class ProfileScreen extends StatelessWidget {
               controller.fullName,
               AppColors.primary,
             ),
-            _buildInfoRow(
-              Icons.person_outline,
-              'Child',
-              controller.childName,
-              AppColors.primary,
-            ),
+            if (controller.isParent.value)
+              _buildInfoRow(
+                Icons.person_outline,
+                'Child',
+                controller.childName,
+                AppColors.primary,
+              ),
             _buildInfoRow(
               Icons.email_outlined,
               'Email',

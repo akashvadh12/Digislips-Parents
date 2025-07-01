@@ -131,14 +131,14 @@ class ContactScreen extends StatelessWidget {
       child: Row(
         children: [
           // Department Filter
-          Obx(
-            () => _buildFilterChip(
-              'Department',
-              controller.selectedDepartment.value,
-              controller.departments,
-              controller.setDepartmentFilter,
-            ),
-          ),
+          // Obx(
+          //   () => _buildFilterChip(
+          //     'Department',
+          //     controller.selectedDepartment.value,
+          //     controller.departments,
+          //     controller.setDepartmentFilter,
+          //   ),
+          // ),
           const SizedBox(width: 12),
 
           // Semester Filter

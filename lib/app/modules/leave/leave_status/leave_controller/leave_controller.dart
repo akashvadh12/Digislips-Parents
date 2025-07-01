@@ -148,7 +148,7 @@ class LeaveController extends GetxController {
 
       // Get current user name from preferences for reviewedBy field
       final prefs = await SharedPreferences.getInstance();
-      final reviewerName = prefs.getString('userName') ?? 'Admin';
+      final reviewerName = prefs.getString('userName') ?? 'Parents';
 
       await _leaveService.updateLeaveStatus(
         studentId: actualStudentId,

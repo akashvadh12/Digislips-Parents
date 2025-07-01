@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class LogoutPage extends StatelessWidget {
+class 
+LogoutPage extends StatelessWidget {
   final LogoutController controller = Get.put(LogoutController());
 
   @override

@@ -159,6 +159,7 @@ class LoginController extends GetxController {
     bool? isParent = prefs.getBool('isParent');
     bool? isTeacher = prefs.getBool('isTeacher');
     String? email = prefs.getString('Email');
+    String? name = prefs.getString('name');
 
     // Print or use them
     print("email is 😁😁👌 $email");
@@ -166,14 +167,17 @@ class LoginController extends GetxController {
     print('Role😊👌👌: $userRole');
     print('Is Parent😁: $isParent');
     print('Is Teacher😁: $isTeacher');
+    print('this is parents name $name');
 
     // Example: Navigate based on role
-    if (userRole == 'parent') {
+    // Safely handle route redirection
+    if (userRole?.toLowerCase() == 'parent') {
       Get.offAllNamed('/parent-dashboard');
-    } else if (userRole == 'teacher') {
+    } else if (userRole?.toLowerCase() == 'teacher') {
       Get.offAllNamed('/teacher-dashboard');
     } else {
-      Get.offAllNamed('/default-dashboard');
+      // Optional: fallback route or show error
+      Get.snackbar("Error", "Unknown user role: $userRole");
     }
   }
 
