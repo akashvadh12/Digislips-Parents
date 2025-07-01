@@ -11,27 +11,38 @@ class StatusChip extends StatelessWidget {
     Color backgroundColor;
     Color textColor;
     IconData icon;
+    String displayText;
 
     switch (status.toLowerCase()) {
       case 'pending':
         backgroundColor = AppColors.pendingColor.withOpacity(0.1);
         textColor = AppColors.pendingColor;
         icon = Icons.schedule;
+        displayText = 'Pending';
         break;
-      case 'approved':
-        backgroundColor = AppColors.approvedColor.withOpacity(0.1);
-        textColor = AppColors.approvedColor;
-        icon = Icons.check_circle;
+      case 'partially approved':
+        backgroundColor = AppColors.greyColor.withOpacity(0.1);
+        textColor = AppColors.greyColor;
+        icon = Icons.help_outline;
+        displayText = 'Approved';
         break;
       case 'rejected':
         backgroundColor = AppColors.rejectedColor.withOpacity(0.1);
         textColor = AppColors.rejectedColor;
         icon = Icons.cancel;
+        displayText = 'Rejected';
+        break;
+      case 'approved':
+        backgroundColor = AppColors.approvedColor.withOpacity(0.1);
+        textColor = AppColors.approvedColor;
+        icon = Icons.check_circle;
+        displayText = 'Approved';
         break;
       default:
         backgroundColor = AppColors.greyColor.withOpacity(0.1);
         textColor = AppColors.greyColor;
         icon = Icons.help_outline;
+        displayText = status;
     }
 
     return Container(
@@ -39,23 +50,15 @@ class StatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: textColor.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: textColor.withOpacity(0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: textColor,
-          ),
+          Icon(icon, size: 14, color: textColor),
           const SizedBox(width: 4),
           Text(
-            status.toLowerCase() == 'pending' ? 'Pending' :
-            status.toLowerCase() == 'approved' ? 'Approved' : 'Rejected',
+            displayText,
             style: TextStyle(
               color: textColor,
               fontSize: 12,

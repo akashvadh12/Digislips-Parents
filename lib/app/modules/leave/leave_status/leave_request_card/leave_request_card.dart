@@ -95,6 +95,7 @@ class LeaveRequestCard extends StatelessWidget {
                                     const SizedBox(width: 4),
                                     Text(
                                       leaveRequest.leaveType.isEmpty
+                                      
                                           ? 'Leave Request'
                                           : leaveRequest.leaveType,
                                       style: AppTextStyles.bodyMedium.copyWith(
@@ -405,48 +406,8 @@ class LeaveRequestCard extends StatelessWidget {
 
                 // Action buttons for pending requests (admin/teacher view)
                 if (leaveRequest.status.toLowerCase() == 'pending' &&
-                    (onApprove != null || onReject != null)) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      if (onReject != null) ...[
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: onReject,
-                            icon: const Icon(Icons.close, size: 16),
-                            label: const Text('Reject'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: AppColors.error),
-                              foregroundColor: AppColors.error,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      if (onApprove != null) ...[
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: onApprove,
-                            icon: const Icon(Icons.check, size: 16),
-                            label: const Text('Approve'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                    (onApprove != null || onReject != null))
+                  ...[],
               ],
             ),
           ),

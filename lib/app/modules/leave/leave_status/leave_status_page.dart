@@ -100,65 +100,6 @@ class LeaveRequestsScreen extends StatelessWidget {
                 ),
               ),
 
-              // Enhanced Statistics Row with better cards
-              Obx(() {
-                if (leaveController.canApproveReject) {
-                  return Container(
-                    color: AppColors.primary,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildEnhancedStatCard(
-                            'Pending',
-                            leaveController.leaveRequests
-                                .where(
-                                  (r) => r.status.toLowerCase() == 'pending',
-                                )
-                                .length
-                                .toString(),
-                            AppColors.warning,
-                            Icons.pending_actions_rounded,
-                            'Awaiting Review',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildEnhancedStatCard(
-                            'Approved',
-                            leaveController.leaveRequests
-                                .where(
-                                  (r) => r.status.toLowerCase() == 'approved',
-                                )
-                                .length
-                                .toString(),
-                            AppColors.success,
-                            Icons.check_circle_rounded,
-                            'Approved',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildEnhancedStatCard(
-                            'Rejected',
-                            leaveController.leaveRequests
-                                .where(
-                                  (r) => r.status.toLowerCase() == 'rejected',
-                                )
-                                .length
-                                .toString(),
-                            AppColors.error,
-                            Icons.cancel_rounded,
-                            'Declined',
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              }),
-
               // Enhanced Main Content Area
               Expanded(
                 child: Container(

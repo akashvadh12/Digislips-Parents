@@ -14,10 +14,14 @@ class LeaveController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString selectedFilter = 'All'.obs;
   final RxString currentUserId = ''.obs;
-  final RxString userRole = ''.obs; // 'student', 'admin', 'teacher'
+  final RxString userRole = ''.obs; // 'student', 'admin', 'teacher', 'parent'
 
   // Add a StreamSubscription to properly manage the listener
   StreamSubscription<List<LeaveModel>>? _leaveSubscription;
+
+  // Store dual approval data separately (using Firestore custom fields)
+  final RxMap<String, Map<String, dynamic>> dualApprovalData =
+      <String, Map<String, dynamic>>{}.obs;
 
   @override
   void onInit() {
@@ -58,12 +62,14 @@ class LeaveController extends GetxController {
     // Cancel existing subscription before creating a new one
     _leaveSubscription?.cancel();
 
-    // If user is admin/teacher, get all leave applications
+    // If user is admin/teacher/parent, get all leave applications
     // If user is student, get only their applications
     Stream<List<LeaveModel>> leaveStream;
 
-    if (userRole.value == 'Parent' || userRole.value == 'teacher') {
-      print('👨‍💼 Fetching all leave applications for admin/teacher');
+    if (userRole.value == 'Parent' ||
+        userRole.value == 'teacher' ||
+        userRole.value == 'admin') {
+      print('👨‍💼 Fetching all leave applications for admin/teacher/parent');
       leaveStream = _leaveService.getAllLeaveApplicationsForRole();
     } else {
       print(
@@ -81,6 +87,9 @@ class LeaveController extends GetxController {
         leaveRequests.value = leaves;
         print('✅ Successfully fetched ${leaves.length} leave requests');
 
+        // Load dual approval data for each leave request
+        _loadDualApprovalData();
+
         // Force UI update
         leaveRequests.refresh();
       },
@@ -91,6 +100,39 @@ class LeaveController extends GetxController {
     );
   }
 
+  // Load dual approval data from Firestore custom fields
+  Future<void> _loadDualApprovalData() async {
+    for (var request in leaveRequests) {
+      if (request.id != null && request.uid != null) {
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('students')
+              .doc(request.uid!)
+              .collection('leave')
+              .doc(request.id!)
+              .get();
+
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            dualApprovalData[request.id!] = {
+              'parentStatus': data['parentStatus'],
+              'parentReviewedBy': data['parentReviewedBy'],
+              'parentReviewComments': data['parentReviewComments'],
+              'parentReviewedAt': data['parentReviewedAt'],
+              'teacherStatus': data['teacherStatus'],
+              'teacherReviewedBy': data['teacherReviewedBy'],
+              'teacherReviewComments': data['teacherReviewComments'],
+              'teacherReviewedAt': data['teacherReviewedAt'],
+            };
+          }
+        } catch (e) {
+          print('❌ Error loading dual approval data for ${request.id}: $e');
+        }
+      }
+    }
+    dualApprovalData.refresh();
+  }
+
   List<LeaveModel> get filteredRequests {
     List<LeaveModel> filtered = leaveRequests;
 
@@ -99,7 +141,7 @@ class LeaveController extends GetxController {
       filtered = filtered
           .where(
             (request) =>
-                request.status.toLowerCase() ==
+                _getFinalStatus(request).toLowerCase() ==
                 selectedFilter.value.toLowerCase(),
           )
           .toList();
@@ -108,7 +150,68 @@ class LeaveController extends GetxController {
     return filtered;
   }
 
-  // Updated method to handle approval/rejection with proper parameters
+  // Helper method to determine final status based on dual approvals
+  String _getFinalStatus(LeaveModel request) {
+    if (request.id == null) return request.status;
+
+    final approvalData = dualApprovalData[request.id!];
+    if (approvalData == null) return request.status;
+
+    final parentStatus = approvalData['parentStatus'] as String?;
+    final teacherStatus = approvalData['teacherStatus'] as String?;
+
+    // If both have approved
+    if (parentStatus?.toLowerCase() == 'approved' &&
+        teacherStatus?.toLowerCase() == 'approved') {
+      return 'Approved';
+    }
+
+    // If either has rejected
+    if (parentStatus?.toLowerCase() == 'rejected' ||
+        teacherStatus?.toLowerCase() == 'rejected') {
+      return 'Rejected';
+    }
+
+    // If one has approved but other is still pending
+    if ((parentStatus?.toLowerCase() == 'approved' && teacherStatus == null) ||
+        (teacherStatus?.toLowerCase() == 'approved' && parentStatus == null)) {
+      return 'Partially Approved';
+    }
+
+    // Default to pending or original status
+    return request.status;
+  }
+
+  // Helper method to get review status display text
+  String getReviewStatusText(LeaveModel request) {
+    if (request.id == null) return 'Status: ${request.status}';
+
+    final approvalData = dualApprovalData[request.id!];
+    if (approvalData == null) return 'Status: ${request.status}';
+
+    final parentStatus = approvalData['parentStatus'] as String?;
+    final teacherStatus = approvalData['teacherStatus'] as String?;
+    final parentReviewedBy = approvalData['parentReviewedBy'] as String?;
+    final teacherReviewedBy = approvalData['teacherReviewedBy'] as String?;
+
+    List<String> statusParts = [];
+
+    if (parentStatus != null && parentReviewedBy != null) {
+      statusParts.add('Parent: $parentStatus by $parentReviewedBy');
+    } else {
+      statusParts.add('Parent: Pending');
+    }
+
+    if (teacherStatus != null && teacherReviewedBy != null) {
+      statusParts.add('Teacher: $teacherStatus by $teacherReviewedBy');
+    } else {
+      statusParts.add('Teacher: Pending');
+    }
+
+    return statusParts.join(' | ');
+  }
+
+  // Updated method to handle approval/rejection with dual approval system
   Future<void> updateLeaveStatus(
     String leaveId,
     String status, {
@@ -145,28 +248,109 @@ class LeaveController extends GetxController {
       print('📋 Leave ID: $leaveId');
       print('👤 Student ID: $actualStudentId');
       print('📊 New Status: $status');
+      print('👥 User Role: ${userRole.value}');
 
       // Get current user name from preferences for reviewedBy field
       final prefs = await SharedPreferences.getInstance();
-      final reviewerName = prefs.getString('userName') ?? 'Parents';
+      final reviewerName =
+          prefs.getString('userName') ??
+          (userRole.value == 'Parent' ? 'Parent' : 'Teacher');
 
-      await _leaveService.updateLeaveStatus(
-        studentId: actualStudentId,
-        leaveId: leaveId,
-        status: status,
-        reviewedBy: reviewerName,
-        reviewComments: reviewComments,
-        userId: currentUserId.value,
-      );
+      // Get current approval data
+      final currentApprovalData = dualApprovalData[leaveId] ?? {};
 
-      // Optimistically update the local state immediately
+      // Update role-specific approval data
+      Map<String, dynamic> updateFields = {};
+
+      if (userRole.value.toLowerCase() == 'parent') {
+        updateFields = {
+          'parentStatus': status,
+          'parentReviewedBy': reviewerName,
+          'parentReviewedAt': FieldValue.serverTimestamp(),
+          'parentReviewComments': reviewComments,
+        };
+
+        // Update local data
+        currentApprovalData['parentStatus'] = status;
+        currentApprovalData['parentReviewedBy'] = reviewerName;
+        currentApprovalData['parentReviewComments'] = reviewComments;
+        currentApprovalData['parentReviewedAt'] = DateTime.now();
+      } else if (userRole.value.toLowerCase() == 'teacher') {
+        updateFields = {
+          'teacherStatus': status,
+          'teacherReviewedBy': reviewerName,
+          'teacherReviewedAt': FieldValue.serverTimestamp(),
+          'teacherReviewComments': reviewComments,
+        };
+
+        // Update local data
+        currentApprovalData['teacherStatus'] = status;
+        currentApprovalData['teacherReviewedBy'] = reviewerName;
+        currentApprovalData['teacherReviewComments'] = reviewComments;
+        currentApprovalData['teacherReviewedAt'] = DateTime.now();
+      }
+
+      // Calculate final status
+      String finalStatus = _calculateFinalStatus(currentApprovalData);
+
+      // Add final status to update fields
+      updateFields['status'] = finalStatus;
+      updateFields['reviewedAt'] = FieldValue.serverTimestamp();
+
+      // Set reviewedBy based on final status
+      if (finalStatus == 'Approved' || finalStatus == 'Rejected') {
+        updateFields['reviewedBy'] = 'Parent & Teacher';
+        updateFields['reviewComments'] = reviewComments;
+      } else {
+        updateFields['reviewedBy'] = reviewerName;
+        updateFields['reviewComments'] = reviewComments;
+      }
+
+      // Update Firestore with both role-specific and main fields
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc(actualStudentId)
+          .collection('leave')
+          .doc(leaveId)
+          .update(updateFields);
+
+      // Update local dual approval data
+      dualApprovalData[leaveId] = currentApprovalData;
+      dualApprovalData.refresh();
+
+      // Update the main leave request status in local state
       final updatedRequests = leaveRequests.map((request) {
         if (request.id == leaveId) {
-          return request.copyWith(
-            status: status,
-            reviewedBy: reviewerName,
-            reviewComments: reviewComments,
+          return LeaveModel(
+            id: request.id,
+            leaveType: request.leaveType,
+            fromDate: request.fromDate,
+            toDate: request.toDate,
+            totalDays: request.totalDays,
+            reason: request.reason,
+            destination: request.destination,
+            travelMode: request.travelMode,
+            documentUrls: request.documentUrls,
+            status: finalStatus,
+            submittedAt: request.submittedAt,
+            submittedBy: request.submittedBy,
+            reviewedBy: updateFields['reviewedBy'] as String?,
             reviewedAt: DateTime.now(),
+            reviewComments: updateFields['reviewComments'] as String?,
+            uid: request.uid,
+            fullName: request.fullName,
+            email: request.email,
+            phone: request.phone,
+            parentEmail: request.parentEmail,
+            parentPhone: request.parentPhone,
+            rollNumber: request.rollNumber,
+            department: request.department,
+            semester: request.semester,
+            profileImageUrl: request.profileImageUrl,
+            isEmailVerified: request.isEmailVerified,
+            profileComplete: request.profileComplete,
+            createdAt: request.createdAt,
+            updatedAt: DateTime.now(),
           );
         }
         return request;
@@ -175,10 +359,8 @@ class LeaveController extends GetxController {
       leaveRequests.value = updatedRequests;
       leaveRequests.refresh();
 
-      String message = status.toLowerCase() == 'approved'
-          ? 'Leave request approved successfully'
-          : 'Leave request rejected successfully';
-
+      String message = _getSuccessMessage(finalStatus, status);
+      Get.snackbar('Success', message);
       print('✅ Leave status updated successfully');
     } catch (e) {
       print('❌ Failed to update leave status: $e');
@@ -191,6 +373,46 @@ class LeaveController extends GetxController {
     }
   }
 
+  // Helper method to calculate final status from approval data
+  String _calculateFinalStatus(Map<String, dynamic> approvalData) {
+    final parentStatus = approvalData['parentStatus'] as String?;
+    final teacherStatus = approvalData['teacherStatus'] as String?;
+
+    // If both have approved
+    if (parentStatus?.toLowerCase() == 'approved' &&
+        teacherStatus?.toLowerCase() == 'approved') {
+      return 'Approved';
+    }
+
+    // If either has rejected
+    if (parentStatus?.toLowerCase() == 'rejected' ||
+        teacherStatus?.toLowerCase() == 'rejected') {
+      return 'Rejected';
+    }
+
+    // If one has approved but other is still pending
+    if ((parentStatus?.toLowerCase() == 'approved' && teacherStatus == null) ||
+        (teacherStatus?.toLowerCase() == 'approved' && parentStatus == null)) {
+      return 'Partially Approved';
+    }
+
+    // Default to pending
+    return 'Pending';
+  }
+
+  // Helper method to get success message
+  String _getSuccessMessage(String finalStatus, String userAction) {
+    if (finalStatus == 'Approved') {
+      return 'Leave request approved by both Parent and Teacher';
+    } else if (finalStatus == 'Rejected') {
+      return 'Leave request rejected';
+    } else if (finalStatus == 'Partially Approved') {
+      return 'Leave request ${userAction.toLowerCase()} by ${userRole.value}. Waiting for other approval.';
+    } else {
+      return 'Leave request ${userAction.toLowerCase()} by ${userRole.value}';
+    }
+  }
+
   // Method to show approval/rejection dialog
   Future<void> showApprovalDialog(LeaveModel request) async {
     String? reviewComments;
@@ -198,6 +420,25 @@ class LeaveController extends GetxController {
 
     print('📝 Showing approval dialog for leave: ${request.id}');
     print('👤 Student: ${request.fullName} (${request.uid})');
+
+    // Check if current user has already reviewed
+    bool hasAlreadyReviewed = false;
+    String? existingStatus;
+
+    if (request.id != null) {
+      final approvalData = dualApprovalData[request.id!];
+      if (approvalData != null) {
+        if (userRole.value.toLowerCase() == 'parent' &&
+            approvalData['parentStatus'] != null) {
+          hasAlreadyReviewed = true;
+          existingStatus = approvalData['parentStatus'] as String?;
+        } else if (userRole.value.toLowerCase() == 'teacher' &&
+            approvalData['teacherStatus'] != null) {
+          hasAlreadyReviewed = true;
+          existingStatus = approvalData['teacherStatus'] as String?;
+        }
+      }
+    }
 
     Get.dialog(
       AlertDialog(
@@ -211,6 +452,26 @@ class LeaveController extends GetxController {
             Text('Leave Type: ${request.leaveType}'),
             Text('Duration: ${request.totalDays} days'),
             Text('Reason: ${request.reason}'),
+            SizedBox(height: 8),
+            Text(
+              'Review Status:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(getReviewStatusText(request), style: TextStyle(fontSize: 12)),
+            if (hasAlreadyReviewed) ...[
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'You have already ${existingStatus?.toLowerCase()} this request.',
+                  style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+                ),
+              ),
+            ],
             SizedBox(height: 16),
             TextField(
               controller: commentsController,
@@ -280,6 +541,9 @@ class LeaveController extends GetxController {
       // Implement delete functionality in service
       // await _leaveService.deleteLeaveApplication(currentUserId.value, leaveId);
 
+      // Remove from dual approval data
+      dualApprovalData.remove(leaveId);
+
       // Optimistically remove from local state
       leaveRequests.removeWhere((request) => request.id == leaveId);
       leaveRequests.refresh();
@@ -302,31 +566,52 @@ class LeaveController extends GetxController {
         'approved': 0,
         'pending': 0,
         'rejected': 0,
+        'partiallyApproved': 0,
         'totalDays': 0,
         'approvedDays': 0,
       };
     }
 
     try {
-      if (userRole.value == 'Parents' || userRole.value == 'teacher') {
+      if (userRole.value == 'Parent' ||
+          userRole.value == 'teacher' ||
+          userRole.value == 'admin') {
         // Return statistics for all applications
         final allRequests = leaveRequests;
         print('📊 Calculating statistics for ${allRequests.length} requests');
+
+        int approved = 0;
+        int pending = 0;
+        int rejected = 0;
+        int partiallyApproved = 0;
+        int approvedDays = 0;
+
+        for (var request in allRequests) {
+          final finalStatus = _getFinalStatus(request);
+          switch (finalStatus.toLowerCase()) {
+            case 'approved':
+              approved++;
+              approvedDays += request.totalDays;
+              break;
+            case 'rejected':
+              rejected++;
+              break;
+            case 'partially approved':
+              partiallyApproved++;
+              break;
+            default:
+              pending++;
+          }
+        }
+
         return {
           'total': allRequests.length,
-          'approved': allRequests
-              .where((r) => r.status.toLowerCase() == 'approved')
-              .length,
-          'pending': allRequests
-              .where((r) => r.status.toLowerCase() == 'pending')
-              .length,
-          'rejected': allRequests
-              .where((r) => r.status.toLowerCase() == 'rejected')
-              .length,
+          'approved': approved,
+          'pending': pending,
+          'rejected': rejected,
+          'partiallyApproved': partiallyApproved,
           'totalDays': allRequests.fold(0, (sum, r) => sum + r.totalDays),
-          'approvedDays': allRequests
-              .where((r) => r.status.toLowerCase() == 'approved')
-              .fold(0, (sum, r) => sum + r.totalDays),
+          'approvedDays': approvedDays,
         };
       } else {
         return await _leaveService.getLeaveStatistics(currentUserId.value);
@@ -339,6 +624,7 @@ class LeaveController extends GetxController {
         'approved': 0,
         'pending': 0,
         'rejected': 0,
+        'partiallyApproved': 0,
         'totalDays': 0,
         'approvedDays': 0,
       };
@@ -378,15 +664,47 @@ class LeaveController extends GetxController {
 
   // Helper method to check if current user can approve/reject
   bool get canApproveReject =>
-      userRole.value == 'admin' || userRole.value == 'teacher';
+      userRole.value.toLowerCase() == 'admin' ||
+      userRole.value.toLowerCase() == 'teacher' ||
+      userRole.value.toLowerCase() == 'parent';
 
   // Helper method to check if current user can delete
   bool canDelete(LeaveModel request) {
-    if (userRole.value == 'admin') return true;
-    if (userRole.value == 'student' &&
-        request.status.toLowerCase() == 'pending') {
+    if (userRole.value.toLowerCase() == 'admin') return true;
+    if (userRole.value.toLowerCase() == 'student' &&
+        _getFinalStatus(request).toLowerCase() == 'pending') {
       return true;
     }
     return false;
+  }
+
+  // Helper method to check if user has already reviewed
+  bool hasUserAlreadyReviewed(LeaveModel request) {
+    if (request.id == null) return false;
+
+    final approvalData = dualApprovalData[request.id!];
+    if (approvalData == null) return false;
+
+    if (userRole.value.toLowerCase() == 'parent') {
+      return approvalData['parentStatus'] != null;
+    } else if (userRole.value.toLowerCase() == 'teacher') {
+      return approvalData['teacherStatus'] != null;
+    }
+    return false;
+  }
+
+  // Helper method to get user's review status for a request
+  String? getUserReviewStatus(LeaveModel request) {
+    if (request.id == null) return null;
+
+    final approvalData = dualApprovalData[request.id!];
+    if (approvalData == null) return null;
+
+    if (userRole.value.toLowerCase() == 'parent') {
+      return approvalData['parentStatus'] as String?;
+    } else if (userRole.value.toLowerCase() == 'teacher') {
+      return approvalData['teacherStatus'] as String?;
+    }
+    return null;
   }
 }
