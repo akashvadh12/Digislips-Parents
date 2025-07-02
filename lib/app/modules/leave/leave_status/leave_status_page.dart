@@ -90,12 +90,21 @@ class LeaveRequestsScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    children: ['All', 'Pending', 'Approved', 'Rejected']
-                        .map(
-                          (filter) =>
-                              _buildEnhancedFilterChip(filter, leaveController),
-                        )
-                        .toList(),
+                    children:
+                        [
+                              'All',
+                              'Pending',
+                              'Partially Approved',
+                              'Approved',
+                              'Rejected',
+                            ]
+                            .map(
+                              (filter) => _buildEnhancedFilterChip(
+                                filter,
+                                leaveController,
+                              ),
+                            )
+                            .toList(),
                   ),
                 ),
               ),

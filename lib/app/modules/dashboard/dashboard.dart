@@ -609,6 +609,12 @@ class HomeView extends GetView<HomeController> {
         statusColor = Colors.orange;
         statusIcon = Icons.schedule_outlined;
         break;
+      case 'partially approved':
+        statusColor = AppColors.greyColor;
+
+        statusIcon = Icons.help_outline;
+
+        break;
       case 'rejected':
         statusColor = Colors.red;
         statusIcon = Icons.cancel_outlined;

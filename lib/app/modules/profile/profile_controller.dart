@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:digislips/app/modules/auth/models/user_model.dart';
+import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:digislips/app/core/theme/app_colors.dart';
@@ -714,6 +715,14 @@ class ProfileController extends GetxController {
                   // Clear SharedPreferences
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.clear();
+                  await FirebaseAuth.instance.signOut();
+                  final HomeController homeController = Get.put(
+                    HomeController(),
+                  );
+                  // Clear SharedPreferences
+
+                  homeController.resetUserData();
+                  await Get.delete<HomeController>(force: true);
 
                   // Clear any in-memory variables or observable values
                   currentUser.value = null;
@@ -765,7 +774,6 @@ class ProfileController extends GetxController {
     print("current user name😁: ${currentUser.value!['fullName']}");
     return currentUser.value!['fullName']?.toString() ?? 'No Name';
   }
-
 
   String _getDepartment() {
     if (currentUser.value == null) return 'N/A';

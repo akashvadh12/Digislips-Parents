@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/auth/models/user_model.dart';
+import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:digislips/app/modules/splash_screen/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -641,10 +642,14 @@ This policy is effective as of the last updated date and will remain in effect e
 
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
-
-      // Clear all stored SharedPreferences
+      await FirebaseAuth.instance.signOut();
+      final HomeController homeController = Get.put(HomeController());
+      // Clear SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear(); // 🔥 Clears everything
+      await prefs.clear();
+      homeController.resetUserData();
+      await Get.delete<HomeController>(force: true);
+      // Clear all stored SharedPreferences
 
       // (Optional) Recreate default values only if your app relies on them immediately
       await prefs.setBool('isLoggedIn', false);
