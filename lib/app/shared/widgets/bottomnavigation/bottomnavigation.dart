@@ -1,6 +1,7 @@
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/dashboard/dashboard.dart';
+import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:digislips/app/modules/notification/notification_screen.dart';
 import 'package:digislips/app/modules/setting/setting.dart';
 import 'package:digislips/app/shared/widgets/bottomnavigation/navigation_controller.dart';
@@ -11,7 +12,7 @@ class BottomNavBarWidget extends StatelessWidget {
   BottomNavBarWidget({super.key});
 
   final BottomNavController controller = Get.put(BottomNavController());
-
+  final HomeController homeController = Get.put(HomeController());
   final List<Widget> screens = [
     HomeView(),
     NotificationScreen(),

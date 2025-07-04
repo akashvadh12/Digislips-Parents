@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/modules/auth/Registration/Registration.dart';
+import 'package:digislips/app/modules/auth/controllers/Teacher_registration/Teacher_registration.dart';
 import 'package:digislips/app/routes/app_pages.dart';
+import 'package:digislips/app/shared/widgets/Custom_Snackbar/Custom_Snackbar.dart';
 import 'package:digislips/app/shared/widgets/bottomnavigation/bottomnavigation.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +17,7 @@ class LoginController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
+  final department = ''.obs;
 
   // Role selection variables
   final selectedRole = Rx<String?>(null);
@@ -94,7 +98,6 @@ class LoginController extends GetxController {
 
   // Login method with form validation and role check
   Future<void> login() async {
-    // Validate role first
     if (selectedRole.value == null) {
       _showSnackbar('Error', 'Please select your role (Parent or Teacher)');
       return;
@@ -114,28 +117,59 @@ class LoginController extends GetxController {
 
       if (userCredential.user != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('uid', userCredential.user!.uid);
+        final uid = userCredential.user!.uid;
 
-        // Store user role in SharedPreferences
+        // Save basic session info
+        await prefs.setString('uid', uid);
         await prefs.setString('Email', email);
         await prefs.setString('userRole', selectedRole.value!);
         await prefs.setBool('isParent', isParent.value);
         await prefs.setBool('isTeacher', isTeacher.value);
 
-        // 🎉 Print session info with emojis
         print("🔐✅ Login Successful!");
-        print("😁👌👌 $email");
-        print("🆔 UID: ${userCredential.user!.uid}");
+        print("📧 Email: $email");
+        print("🆔 UID: $uid");
         print("🧑‍💼 Role: ${selectedRole.value!}");
-        print("👨‍👧 isParent: ${isParent.value}");
-        print("👩‍🏫 isTeacher: ${isTeacher.value}");
 
-        // Load user details from preferences (optional)
+        // Fetch and store user details based on role
+        String collection = selectedRole.value == 'Teacher'
+            ? 'teachers'
+            : 'parents';
+
+        final doc = await FirebaseFirestore.instance
+            .collection(collection)
+            .doc(uid)
+            .get();
+
+        if (doc.exists) {
+          final userData = doc.data()!;
+          print("📄 ${selectedRole.value} Profile Data:");
+          userData.forEach((key, value) {
+            print("🔹 $key: $value");
+          });
+
+          // Store all user fields into SharedPreferences
+          for (var entry in userData.entries) {
+            if (entry.value is String) {
+              await prefs.setString(entry.key, entry.value);
+            } else if (entry.value is bool) {
+              await prefs.setBool(entry.key, entry.value);
+            } else if (entry.value is int) {
+              await prefs.setInt(entry.key, entry.value);
+            } else if (entry.value is double) {
+              await prefs.setDouble(entry.key, entry.value);
+            } else {
+              // Convert other types to string
+              await prefs.setString(entry.key, entry.value.toString());
+            }
+          }
+        } else {
+          print("❌ No ${selectedRole.value} data found for UID: $uid");
+        }
+
+        // Continue login
         getUserDetailsFromPrefs();
-
-        // Navigate to dashboard and remove login from stack
         Get.offAllNamed(Routes.BOTTOM_NAVIGATION);
-
         _showSnackbar(
           'Success',
           'Login successful as ${selectedRole.value}!',
@@ -150,35 +184,44 @@ class LoginController extends GetxController {
   }
 
   // get user data
+
   Future<void> getUserDetailsFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Get stored values
+    // Retrieve all expected values
     String? uid = prefs.getString('uid');
+    String? email = prefs.getString('email');
     String? userRole = prefs.getString('userRole');
     bool? isParent = prefs.getBool('isParent');
     bool? isTeacher = prefs.getBool('isTeacher');
-    String? email = prefs.getString('Email');
-    String? name = prefs.getString('name');
+    String? fullName = prefs.getString('fullName');
+    String? phone = prefs.getString('phone');
+    String? departmentFromPrefs = prefs.getString('department');
+    String? profileImageUrl = prefs.getString('profileImageUrl');
+    String? parentUid = prefs.getString('parentUid');
+    bool? profileComplete = prefs.getBool('profileComplete');
+    bool? isEmailVerified = prefs.getBool('isEmailVerified');
+    String? createdAt = prefs.getString('createdAt');
+    String? updatedAt = prefs.getString('updatedAt');
 
-    // Print or use them
-    print("email is 😁😁👌 $email");
-    print('UID😁😁😁👍: $uid');
-    print('Role😊👌👌: $userRole');
-    print('Is Parent😁: $isParent');
-    print('Is Teacher😁: $isTeacher');
-    print('this is parents name $name');
+    // Set observable or use them in your app
+    department.value = departmentFromPrefs ?? '';
 
-    // Example: Navigate based on role
-    // Safely handle route redirection
-    if (userRole?.toLowerCase() == 'parent') {
-      Get.offAllNamed('/parent-dashboard');
-    } else if (userRole?.toLowerCase() == 'teacher') {
-      Get.offAllNamed('/teacher-dashboard');
-    } else {
-      // Optional: fallback route or show error
-      Get.snackbar("Error", "Unknown user role: $userRole");
-    }
+    // Logging for debug
+    print("📧 Email: $email");
+    print("🆔 UID: $uid");
+    print("🧑‍🏫 Role: $userRole");
+    print("👨‍👧 Is Parent: $isParent");
+    print("👩‍🏫 Is Teacher: $isTeacher");
+    print("👤 Full Name: $fullName");
+    print("📱 Phone: $phone");
+    print("🏢 Department: $departmentFromPrefs");
+    print("🖼️ Profile Image: $profileImageUrl");
+    print("👪 Parent UID: $parentUid");
+    print("✅ Profile Complete: $profileComplete");
+    print("📨 Email Verified: $isEmailVerified");
+    print("🕒 Created At: $createdAt");
+    print("🕒 Updated At: $updatedAt");
   }
 
   // Forgot password logic
@@ -208,6 +251,7 @@ class LoginController extends GetxController {
   // Navigate to registration screen (only for parents)
   void navigateToSignUp() {
     if (isParent.value) {
+      //Get.to(TeacherRegistrationPage());
       Get.to(() => RegistrationScreen());
     } else {
       _showSnackbar(
@@ -254,8 +298,8 @@ class LoginController extends GetxController {
 
   @override
   void onClose() {
-    emailController.dispose();
-    passwordController.dispose();
+    // emailController.dispose();
+    // passwordController.dispose();
     super.onClose();
   }
 }

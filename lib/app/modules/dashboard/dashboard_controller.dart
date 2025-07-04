@@ -223,10 +223,13 @@ class HomeController extends GetxController {
 
       // Initialize based on role
       if (userRole.value == 'parent' || isParent.value) {
+        print("😁😁😁😁😁😁😁");
         await initializeParentData();
       } else if (userRole.value == 'teacher' || isTeacher.value) {
+        print("👍👍👍👍👍👍👍👍👍");
         await initializeTeacherData();
       } else {
+        print("😊😊😊😊😊😊😊");
         await fetchCurrentUserData();
       }
 
@@ -621,25 +624,42 @@ class HomeController extends GetxController {
   }
 
   // Fetch all students' leave applications using collection method (for teachers)
-  void fetchAllStudentsLeaveApplications() {
+  void fetchAllStudentsLeaveApplications() async {
     try {
       isLoadingLeaves.value = true;
       print(
         '👨‍💼 Fetching all students leave applications for admin dashboard',
       );
 
+      // Get department from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      String? department = prefs.getString('department');
+
+      if (department == null || department.isEmpty) {
+        print('⚠️ No department found in SharedPreferences.');
+        isLoadingLeaves.value = false;
+        Get.snackbar(
+          'Error',
+          'Department not set in preferences.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
       // Cancel previous subscription if exists
       _leaveSubscription?.cancel();
 
-      // Get all students from CS department and their leave applications
+      // Fetch all students from selected department
       _leaveSubscription = _firestore
           .collection('students')
-          .where("department", isEqualTo: "CS")
+          .where("department", isEqualTo: department)
           .snapshots()
           .asyncMap((studentSnapshot) async {
             List<LeaveModel> allLeaves = [];
             print(
-              '📋 Processing ${studentSnapshot.docs.length} students for admin view',
+              '📋 Processing ${studentSnapshot.docs.length} students for admin view in $department',
             );
 
             for (var studentDoc in studentSnapshot.docs) {
@@ -658,8 +678,8 @@ class HomeController extends GetxController {
                   allLeaves.addAll(
                     leaveSnapshot.docs.map((leaveDoc) {
                       return LeaveModel.fromFirestore(leaveDoc).copyWith(
-                        id: leaveDoc.id, // Leave document ID
-                        uid: studentDoc.id, // Student ID
+                        id: leaveDoc.id,
+                        uid: studentDoc.id,
                         fullName: studentDoc['fullName'],
                         rollNumber: studentDoc['rollNumber'],
                         department: studentDoc['department'],
@@ -677,18 +697,15 @@ class HomeController extends GetxController {
 
             // Sort all leaves by submission date (most recent first)
             allLeaves.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
-
             print('✅ Total applications for admin view: ${allLeaves.length}');
             return allLeaves;
           })
           .listen(
             (allLeaves) {
-              // Convert LeaveModel to LeaveApplication
               final applications = allLeaves.map((leave) {
                 return LeaveApplication.fromLeaveModel(leave);
               }).toList();
 
-              // Update the reactive list
               recentLeaveApplications.assignAll(applications);
               isLoadingLeaves.value = false;
 
@@ -861,11 +878,17 @@ class HomeController extends GetxController {
 
   // Get time-based greeting
   String get timeBasedGreeting {
-    final hour = DateTime.now().hour;
+    final now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
 
+    // Good Morning: 5:00 AM - 11:59 AM
+    // Good Afternoon: 12:00 PM - 4:59 PM
+    // Good Evening: 5:00 PM - 8:59 PM
+    // Good Night: 9:00 PM - 4:59 AM
     if (hour >= 5 && hour < 12) {
       return 'Good Morning';
-    } else if (hour >= 12 && hour < 17) {
+    } else if ((hour == 12 && minute >= 0) || (hour > 12 && hour < 17)) {
       return 'Good Afternoon';
     } else if (hour >= 17 && hour < 21) {
       return 'Good Evening';

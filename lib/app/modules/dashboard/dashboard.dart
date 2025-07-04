@@ -12,7 +12,7 @@ import 'package:get/get.dart';
 class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
-    Get.put(HomeController());
+    // HomeController homeController = Get.put(HomeController());
     final BottomNavController bottomNavController = Get.put(
       BottomNavController(),
     );
@@ -67,6 +67,7 @@ class HomeView extends GetView<HomeController> {
                               controller.isLoading.value
                                   ? 'Loading...'
                                   : controller.currentUserName,
+
                               style: AppTextStyles.welcomeTitle.copyWith(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -162,7 +163,7 @@ class HomeView extends GetView<HomeController> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Enhanced Profile Card with glassmorphism effect
+                                // ✅ ORIGINAL Profile Card (unchanged)
                                 Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
@@ -189,7 +190,6 @@ class HomeView extends GetView<HomeController> {
                                   ),
                                   child: Row(
                                     children: [
-                                      // Enhanced Profile Avatar with border and shadow
                                       Container(
                                         width: 60,
                                         height: 60,
@@ -218,23 +218,20 @@ class HomeView extends GetView<HomeController> {
                                           margin: const EdgeInsets.all(3),
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            image: DecorationImage(
-                                              image:
-                                                  controller.profileImageUrl !=
-                                                          null &&
-                                                      controller
-                                                          .profileImageUrl!
-                                                          .isNotEmpty
-                                                  ? NetworkImage(
+                                            image:
+                                                controller.profileImageUrl !=
+                                                        null &&
+                                                    controller
+                                                        .profileImageUrl!
+                                                        .isNotEmpty
+                                                ? DecorationImage(
+                                                    image: NetworkImage(
                                                       controller
                                                           .profileImageUrl!,
-                                                    )
-                                                  : const NetworkImage(''),
-                                              fit: BoxFit.cover,
-                                              onError: (exception, stackTrace) {
-                                                // Handle image load error
-                                              },
-                                            ),
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
                                           ),
                                           child:
                                               controller.profileImageUrl ==
@@ -252,16 +249,24 @@ class HomeView extends GetView<HomeController> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      // Enhanced Profile Info
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              controller.studentName,
+                                              controller.currentUserName,
                                               style: AppTextStyles.profileName,
                                             ),
+                                            if (controller.isParent.value)
+                                              Text(
+                                                controller.studentName,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
                                             const SizedBox(height: 2),
                                             Text(
                                               controller.studentDepartment,
@@ -275,7 +280,6 @@ class HomeView extends GetView<HomeController> {
                                           ],
                                         ),
                                       ),
-                                      // Status indicator
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -326,12 +330,12 @@ class HomeView extends GetView<HomeController> {
 
                                 const SizedBox(height: 32),
 
-                                // Enhanced Action Cards Grid with Role-based Visibility
+                                // Action Cards Grid
                                 Obx(() => _buildActionCardsGrid()),
 
                                 const SizedBox(height: 32),
 
-                                // Enhanced Recent Leave Applications Section
+                                // Recent Leave Applications Section
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -358,7 +362,7 @@ class HomeView extends GetView<HomeController> {
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Enhanced Leave Applications List with Loading State
+                                // Leave Application List with Loading State
                                 Obx(() {
                                   if (controller.isLoadingLeaves.value) {
                                     return Container(

@@ -4,6 +4,7 @@ import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:digislips/app/modules/leave/leave_model/leave_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LeaveService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -37,10 +38,23 @@ class LeaveService {
   }
 
   // Get all leave applications for a student (works for both single student and all students)
-  Stream<List<LeaveModel>> getStudentLeaveApplications(String studentId) {
-    return _firestore
+  Stream<List<LeaveModel>> getStudentLeaveApplications(
+    String studentId,
+  ) async* {
+    // Step 1: Get department from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    String? department = prefs.getString('department');
+
+    if (department == null || department.isEmpty) {
+      print('⚠️ Department not found in SharedPreferences');
+      yield [];
+      return;
+    }
+
+    // Step 2: Firestore stream filtered by department
+    yield* FirebaseFirestore.instance
         .collection('students')
-        .where("department", isEqualTo: "CS")
+        .where("department", isEqualTo: department)
         .snapshots()
         .asyncMap((studentSnapshot) async {
           List<LeaveModel> allLeaves = [];
@@ -53,8 +67,8 @@ class LeaveService {
 
               for (var leaveDoc in leaveSnapshot.docs) {
                 final leaveModel = LeaveModel.fromFirestore(leaveDoc).copyWith(
-                  id: leaveDoc.id, // 🔥 Leave document ID
-                  uid: studentDoc.id, // 🔥 Student ID
+                  id: leaveDoc.id,
+                  uid: studentDoc.id,
                   fullName: studentDoc['fullName'],
                   rollNumber: studentDoc['rollNumber'],
                   department: studentDoc['department'],
@@ -247,7 +261,7 @@ class LeaveService {
     required String leaveId,
     required String status,
     required String reviewedBy,
-    
+
     String? reviewComments,
     required String userId,
   }) async {

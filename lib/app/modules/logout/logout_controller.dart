@@ -76,7 +76,7 @@ class LogoutController extends GetxController with GetTickerProviderStateMixin {
     try {
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
-      final HomeController homeController = Get.put(HomeController());
+      final HomeController homeController = Get.find<HomeController>();
       // Clear SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
@@ -120,8 +120,8 @@ class LogoutController extends GetxController with GetTickerProviderStateMixin {
       Get.snackbar(
         'Success',
         'You have been logged out successfully',
-        backgroundColor: AppColors.success.withOpacity(0.1),
-        colorText: AppColors.success,
+        backgroundColor: AppColors.success,
+        colorText: AppColors.background,
         snackPosition: SnackPosition.TOP,
         margin: EdgeInsets.all(16),
         borderRadius: 12,
@@ -137,8 +137,8 @@ class LogoutController extends GetxController with GetTickerProviderStateMixin {
       Get.snackbar(
         'Logout Failed',
         'Something went wrong while logging out.',
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
     } finally {
       isLoggingOut.value = false;

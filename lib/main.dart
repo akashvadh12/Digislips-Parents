@@ -116,7 +116,7 @@ Future<void> main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String? uid = prefs.getString('uid');
 
-  Get.put(HomeController());
+  // Get.put(HomeController());
   runApp(MyApp(isLoggedIn: uid != null));
 }
 

@@ -679,15 +679,6 @@ This policy is effective as of the last updated date and will remain in effect e
     }
   }
 
-  // Refresh profile data
-  Future<void> refreshProfile() async {
-    if (isTeacher.value) {
-      await fetchCurrentTeacherData();
-    } else {
-      await fetchCurrentUserData();
-    }
-  }
-
   // Private helper methods for getters
   String _getFullName() {
     if (currentUser.value == null) return 'Loading...';
@@ -766,9 +757,8 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor:
-          AppColors.success?.withOpacity(0.1) ?? Colors.green.withOpacity(0.1),
-      colorText: AppColors.success ?? Colors.green,
+      backgroundColor: AppColors.success ?? Colors.green,
+      colorText: AppColors.background ?? Colors.white,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
       borderRadius: 12,

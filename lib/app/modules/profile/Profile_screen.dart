@@ -273,9 +273,9 @@ class ProfileScreen extends StatelessWidget {
       children: [
         // Personal & Contact Information Card
         _buildInfoCard(
-          title: 'Personal & Contact Information',
+          title: 'User Details',
 
-          icon: Icons.person_outline,
+          icon: Icons.badge_outlined,
           children: [
             _buildInfoRow(
               Icons.person_outline,
@@ -285,7 +285,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             if (controller.isParent.value)
               _buildInfoRow(
-                Icons.person_outline,
+                Icons.family_restroom,
                 'Child',
                 controller.childName,
                 AppColors.primary,
@@ -313,7 +313,7 @@ class ProfileScreen extends StatelessWidget {
           icon: Icons.school_outlined,
           children: [
             _buildInfoRow(
-              Icons.school_outlined,
+              Icons.chrome_reader_mode,
               'Department',
               controller.department,
               AppColors.primary,
@@ -334,8 +334,8 @@ class ProfileScreen extends StatelessWidget {
       children: [
         // Personal & Contact Information Edit Card
         _buildEditCard(
-          title: 'Personal & Contact Information',
-          icon: Icons.person_outline,
+          title: 'User Details',
+          icon: Icons.badge_outlined,
           children: [
             _buildEditField(
               'Full Name',

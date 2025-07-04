@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:digislips/app/modules/leave/leave_model/leave_model.dart';
 import 'package:digislips/app/modules/leave/leave_service/leave_service.dart';
+import 'package:digislips/app/shared/widgets/Custom_Snackbar/Custom_Snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,7 +51,8 @@ class LeaveController extends GetxController {
       }
     } catch (e) {
       print('❌ Error initializing user: $e');
-      Get.snackbar('Error', 'Failed to initialize user: $e');
+      CustomSnackbar.showError('Error', 'Failed to initialize user: $e');
+  
     }
   }
 
@@ -95,7 +97,12 @@ class LeaveController extends GetxController {
       },
       onError: (error) {
         print('❌ Error fetching leave requests: $error');
-        Get.snackbar('Error', 'Failed to fetch leave requests: $error');
+
+        CustomSnackbar.showError(
+          'Error',
+          'Failed to fetch leave requests: $error',
+        );
+    
       },
     );
   }
@@ -220,7 +227,8 @@ class LeaveController extends GetxController {
   }) async {
     if (currentUserId.value.isEmpty) {
       print('❌ User not authenticated');
-      Get.snackbar('Error', 'User not authenticated');
+      CustomSnackbar.showError('Error', 'User not authenticated');
+
       return;
     }
 
@@ -230,7 +238,8 @@ class LeaveController extends GetxController {
     );
     if (leaveRequest == null) {
       print('❌ Leave request not found with ID: $leaveId');
-      Get.snackbar('Error', 'Leave request not found');
+      CustomSnackbar.showError('Error', 'Leave request not found');
+
       return;
     }
 
@@ -238,7 +247,8 @@ class LeaveController extends GetxController {
     final actualStudentId = leaveRequest.uid ?? studentId;
     if (actualStudentId == null || actualStudentId.isEmpty) {
       print('❌ Student ID not found for leave request: $leaveId');
-      Get.snackbar('Error', 'Student ID not found');
+      CustomSnackbar.showError('Error', 'Student ID not found');
+
       return;
     }
 
@@ -360,11 +370,13 @@ class LeaveController extends GetxController {
       leaveRequests.refresh();
 
       String message = _getSuccessMessage(finalStatus, status);
-      Get.snackbar('Success', message);
+      CustomSnackbar.showSuccess('Success', message);
+
       print('✅ Leave status updated successfully');
     } catch (e) {
       print('❌ Failed to update leave status: $e');
-      Get.snackbar('Error', 'Failed to update leave request: $e');
+
+      CustomSnackbar.showError('Error', 'Failed to update leave request: $e');
 
       // Refresh data from server in case of error
       await refreshLeaveRequests();
@@ -443,47 +455,56 @@ class LeaveController extends GetxController {
     Get.dialog(
       AlertDialog(
         title: Text('Review Leave Application'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Student: ${request.fullName}'),
-            Text('Roll Number: ${request.rollNumber}'),
-            Text('Leave Type: ${request.leaveType}'),
-            Text('Duration: ${request.totalDays} days'),
-            Text('Reason: ${request.reason}'),
-            SizedBox(height: 8),
-            Text(
-              'Review Status:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(getReviewStatusText(request), style: TextStyle(fontSize: 12)),
-            if (hasAlreadyReviewed) ...[
+        content: SingleChildScrollView(
+          // ✅ Added to prevent overflow
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Student: ${request.fullName}'),
+              Text('Roll Number: ${request.rollNumber}'),
+              Text('Leave Type: ${request.leaveType}'),
+              Text('Duration: ${request.totalDays} days'),
+              Text('Reason: ${request.reason}'),
               SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(4),
+              Text(
+                'Review Status:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                getReviewStatusText(request),
+                style: TextStyle(fontSize: 12),
+              ),
+              if (hasAlreadyReviewed) ...[
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'You have already ${existingStatus?.toLowerCase()} this request.',
+                    style: TextStyle(
+                      color: Colors.orange.shade800,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  'You have already ${existingStatus?.toLowerCase()} this request.',
-                  style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+              ],
+              SizedBox(height: 16),
+              TextField(
+                controller: commentsController,
+                decoration: InputDecoration(
+                  labelText: 'Review Comments (Optional)',
+                  border: OutlineInputBorder(),
+                  hintText: 'Add your comments here...',
                 ),
+                maxLines: 3,
+                onChanged: (value) => reviewComments = value,
               ),
             ],
-            SizedBox(height: 16),
-            TextField(
-              controller: commentsController,
-              decoration: InputDecoration(
-                labelText: 'Review Comments (Optional)',
-                border: OutlineInputBorder(),
-                hintText: 'Add your comments here...',
-              ),
-              maxLines: 3,
-              onChanged: (value) => reviewComments = value,
-            ),
-          ],
+          ),
         ),
         actions: [
           TextButton(
@@ -531,7 +552,8 @@ class LeaveController extends GetxController {
   Future<void> deleteLeaveRequest(String leaveId) async {
     if (currentUserId.value.isEmpty) {
       print('❌ User not authenticated for delete operation');
-      Get.snackbar('Error', 'User not authenticated');
+
+      CustomSnackbar.showError('Error', 'User not authenticated');
       return;
     }
 
@@ -547,11 +569,14 @@ class LeaveController extends GetxController {
       // Optimistically remove from local state
       leaveRequests.removeWhere((request) => request.id == leaveId);
       leaveRequests.refresh();
-
-      Get.snackbar('Success', 'Leave request deleted successfully');
+      CustomSnackbar.showSuccess(
+        'Success',
+        'Leave request deleted successfully',
+      );
     } catch (e) {
       print('❌ Failed to delete leave request: $e');
-      Get.snackbar('Error', 'Failed to delete leave request: $e');
+      CustomSnackbar.showError('Error', 'Failed to delete leave request $e');
+
       // Refresh data from server in case of error
       await refreshLeaveRequests();
     } finally {
@@ -618,7 +643,8 @@ class LeaveController extends GetxController {
       }
     } catch (e) {
       print('❌ Failed to get leave statistics: $e');
-      Get.snackbar('Error', 'Failed to get leave statistics: $e');
+
+      CustomSnackbar.showError('Error', 'Failed to get leave statistics: $e');
       return {
         'total': 0,
         'approved': 0,
@@ -650,7 +676,8 @@ class LeaveController extends GetxController {
       );
     } catch (e) {
       print('❌ Failed to check overlapping leave: $e');
-      Get.snackbar('Error', 'Failed to check overlapping leave: $e');
+      CustomSnackbar.showError('Error', 'Failed to check overlapping leave: $e');
+     ;
       return false;
     }
   }
