@@ -465,10 +465,6 @@ class LeaveController extends GetxController {
     String? reviewComments;
     final TextEditingController commentsController = TextEditingController();
 
-    print('📝 Showing approval dialog for leave: ${request.id}');
-    print('👤 Student: ${request.fullName} (${request.uid})');
-
-    // Check if current user has already reviewed
     bool hasAlreadyReviewed = false;
     String? existingStatus;
 
@@ -488,98 +484,121 @@ class LeaveController extends GetxController {
     }
 
     Get.dialog(
-      AlertDialog(
-        title: Text('Review Leave Application'),
-        content: SingleChildScrollView(
-          // ✅ Added to prevent overflow
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Student: ${request.fullName}'),
-              Text('Roll Number: ${request.rollNumber}'),
-              Text('Leave Type: ${request.leaveType}'),
-              Text('Duration: ${request.totalDays} days'),
-              Text('Reason: ${request.reason}'),
-              SizedBox(height: 8),
-              Text(
-                'Review Status:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+      Dialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                left: 16,
+                right: 16,
+                top: 16,
               ),
-              Text(
-                getReviewStatusText(request),
-                style: TextStyle(fontSize: 12),
-              ),
-              if (hasAlreadyReviewed) ...[
-                SizedBox(height: 8),
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Review Leave Application',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  child: Text(
-                    'You have already ${existingStatus?.toLowerCase()} this request.',
-                    style: TextStyle(
-                      color: Colors.orange.shade800,
-                      fontSize: 12,
+                  SizedBox(height: 8),
+                  Text('Student: ${request.fullName}'),
+                  Text('Roll Number: ${request.rollNumber}'),
+                  Text('Leave Type: ${request.leaveType}'),
+                  Text('Duration: ${request.totalDays} days'),
+                  Text('Reason: ${request.reason}'),
+                  SizedBox(height: 8),
+                  Text(
+                    'Review Status:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    getReviewStatusText(request),
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  if (hasAlreadyReviewed) ...[
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'You have already ${existingStatus?.toLowerCase()} this request.',
+                        style: TextStyle(
+                          color: Colors.orange.shade800,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
+                  ],
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: commentsController,
+                    decoration: InputDecoration(
+                      labelText: 'Review Comments (Optional)',
+                      border: OutlineInputBorder(),
+                      hintText: 'Add your comments here...',
+                    ),
+                    maxLines: 3,
+                    onChanged: (value) => reviewComments = value,
                   ),
-                ),
-              ],
-              SizedBox(height: 16),
-              TextField(
-                controller: commentsController,
-                decoration: InputDecoration(
-                  labelText: 'Review Comments (Optional)',
-                  border: OutlineInputBorder(),
-                  hintText: 'Add your comments here...',
-                ),
-                maxLines: 3,
-                onChanged: (value) => reviewComments = value,
+                  SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          print('❌ Approval dialog cancelled');
+                          Get.back();
+                        },
+                        child: Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          print('❌ Rejecting leave request: ${request.id}');
+                          Get.back();
+                          await updateLeaveStatus(
+                            request.id!,
+                            'Rejected',
+                            reviewComments:
+                                commentsController.text.trim().isEmpty
+                                ? null
+                                : commentsController.text.trim(),
+                            studentId: request.uid,
+                          );
+                        },
+                        child: Text(
+                          'Reject',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          print('✅ Approving leave request: ${request.id}');
+                          Get.back();
+                          await updateLeaveStatus(
+                            request.id!,
+                            'Approved',
+                            reviewComments:
+                                commentsController.text.trim().isEmpty
+                                ? null
+                                : commentsController.text.trim(),
+                            studentId: request.uid,
+                          );
+                        },
+                        child: Text('Approve'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              print('❌ Approval dialog cancelled');
-              Get.back();
-            },
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              print('❌ Rejecting leave request: ${request.id}');
-              Get.back();
-              await updateLeaveStatus(
-                request.id!,
-                'Rejected',
-                reviewComments: commentsController.text.trim().isEmpty
-                    ? null
-                    : commentsController.text.trim(),
-                studentId: request.uid,
-              );
-            },
-            child: Text('Reject', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              print('✅ Approving leave request: ${request.id}');
-              Get.back();
-              await updateLeaveStatus(
-                request.id!,
-                'Approved',
-                reviewComments: commentsController.text.trim().isEmpty
-                    ? null
-                    : commentsController.text.trim(),
-                studentId: request.uid,
-              );
-            },
-            child: Text('Approve'),
-          ),
-        ],
       ),
     );
   }

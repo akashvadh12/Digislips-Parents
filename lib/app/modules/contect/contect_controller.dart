@@ -220,24 +220,24 @@ class ContactController extends GetxController {
     }
   }
 
-  Future<void> sendSMS(String phoneNumber) async {
-    if (phoneNumber.isEmpty) {
-      Get.snackbar('Error', 'Phone number not available');
-      return;
-    }
+  // Future<void> sendSMS(String phoneNumber) async {
+  //   if (phoneNumber.isEmpty) {
+  //     Get.snackbar('Error', 'Phone number not available');
+  //     return;
+  //   }
 
-    final Uri smsUri = Uri(scheme: 'sms', path: phoneNumber);
+  //   final Uri smsUri = Uri(scheme: 'sms', path: phoneNumber);
 
-    try {
-      if (await canLaunchUrl(smsUri)) {
-        await launchUrl(smsUri);
-      } else {
-        Get.snackbar('Error', 'Cannot send SMS');
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to send SMS: $e');
-    }
-  }
+  //   try {
+  //     if (await canLaunchUrl(smsUri)) {
+  //       await launchUrl(smsUri);
+  //     } else {
+  //       Get.snackbar('Error', 'Cannot send SMS');
+  //     }
+  //   } catch (e) {
+  //     Get.snackbar('Error', 'Failed to send SMS: $e');
+  //   }
+  // }
 
   Future<void> refreshContacts() async {
     await fetchAllContacts();
