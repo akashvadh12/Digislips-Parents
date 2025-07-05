@@ -90,7 +90,31 @@ class NotificationScreen extends StatelessWidget {
                                 Icons.mark_email_read,
                                 color: Colors.white,
                               ),
-                              onPressed: () => controller.markAllAsRead(),
+                              onPressed: () {
+                                showDialog(
+                                  context: Get.context!,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Mark All as Read'),
+                                    content: const Text(
+                                      'Are you sure you want to mark all notifications as read?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          controller.markAllAsRead();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Confirm'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                               tooltip: 'Mark all as read',
                             )
                           : const SizedBox(),

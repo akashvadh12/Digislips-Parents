@@ -24,6 +24,10 @@ class LeaveController extends GetxController {
   final RxMap<String, Map<String, dynamic>> dualApprovalData =
       <String, Map<String, dynamic>>{}.obs;
 
+  // Map to hold per-leave Firestore listeners for dual approval data
+  final Map<String, StreamSubscription<DocumentSnapshot>>
+  _dualApprovalSubscriptions = {};
+
   @override
   void onInit() {
     super.onInit();
@@ -34,6 +38,8 @@ class LeaveController extends GetxController {
   void onClose() {
     // Cancel the subscription when controller is disposed
     _leaveSubscription?.cancel();
+    // Cancel all dual approval listeners
+    _cancelAllDualApprovalListeners();
     super.onClose();
   }
 
@@ -52,7 +58,6 @@ class LeaveController extends GetxController {
     } catch (e) {
       print('❌ Error initializing user: $e');
       CustomSnackbar.showError('Error', 'Failed to initialize user: $e');
-  
     }
   }
 
@@ -102,42 +107,72 @@ class LeaveController extends GetxController {
           'Error',
           'Failed to fetch leave requests: $error',
         );
-    
       },
     );
   }
 
-  // Load dual approval data from Firestore custom fields
+  // Load dual approval data from Firestore custom fields (now with real-time listeners)
   Future<void> _loadDualApprovalData() async {
+    // Cancel listeners for leave requests that no longer exist
+    final currentIds = leaveRequests
+        .map((r) => r.id)
+        .whereType<String>()
+        .toSet();
+    final toRemove = _dualApprovalSubscriptions.keys
+        .where((id) => !currentIds.contains(id))
+        .toList();
+    for (final id in toRemove) {
+      _dualApprovalSubscriptions[id]?.cancel();
+      _dualApprovalSubscriptions.remove(id);
+      dualApprovalData.remove(id);
+    }
+
+    // Set up listeners for each leave request
     for (var request in leaveRequests) {
       if (request.id != null && request.uid != null) {
-        try {
-          final doc = await FirebaseFirestore.instance
-              .collection('students')
-              .doc(request.uid!)
-              .collection('leave')
-              .doc(request.id!)
-              .get();
+        final leaveId = request.id!;
+        // If already listening, skip
+        if (_dualApprovalSubscriptions.containsKey(leaveId)) continue;
 
-          if (doc.exists) {
-            final data = doc.data() as Map<String, dynamic>;
-            dualApprovalData[request.id!] = {
-              'parentStatus': data['parentStatus'],
-              'parentReviewedBy': data['parentReviewedBy'],
-              'parentReviewComments': data['parentReviewComments'],
-              'parentReviewedAt': data['parentReviewedAt'],
-              'teacherStatus': data['teacherStatus'],
-              'teacherReviewedBy': data['teacherReviewedBy'],
-              'teacherReviewComments': data['teacherReviewComments'],
-              'teacherReviewedAt': data['teacherReviewedAt'],
-            };
-          }
-        } catch (e) {
-          print('❌ Error loading dual approval data for ${request.id}: $e');
-        }
+        final sub = FirebaseFirestore.instance
+            .collection('students')
+            .doc(request.uid!)
+            .collection('leave')
+            .doc(leaveId)
+            .snapshots()
+            .listen(
+              (doc) {
+                if (doc.exists) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  dualApprovalData[leaveId] = {
+                    'parentStatus': data['parentStatus'],
+                    'parentReviewedBy': data['parentReviewedBy'],
+                    'parentReviewComments': data['parentReviewComments'],
+                    'parentReviewedAt': data['parentReviewedAt'],
+                    'teacherStatus': data['teacherStatus'],
+                    'teacherReviewedBy': data['teacherReviewedBy'],
+                    'teacherReviewComments': data['teacherReviewComments'],
+                    'teacherReviewedAt': data['teacherReviewedAt'],
+                  };
+                  dualApprovalData.refresh();
+                }
+              },
+              onError: (e) {
+                print(
+                  '❌ Error listening to dual approval data for $leaveId: $e',
+                );
+              },
+            );
+        _dualApprovalSubscriptions[leaveId] = sub;
       }
     }
-    dualApprovalData.refresh();
+  }
+
+  void _cancelAllDualApprovalListeners() {
+    for (final sub in _dualApprovalSubscriptions.values) {
+      sub.cancel();
+    }
+    _dualApprovalSubscriptions.clear();
   }
 
   List<LeaveModel> get filteredRequests {
@@ -676,8 +711,11 @@ class LeaveController extends GetxController {
       );
     } catch (e) {
       print('❌ Failed to check overlapping leave: $e');
-      CustomSnackbar.showError('Error', 'Failed to check overlapping leave: $e');
-     ;
+      CustomSnackbar.showError(
+        'Error',
+        'Failed to check overlapping leave: $e',
+      );
+      ;
       return false;
     }
   }

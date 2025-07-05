@@ -16,8 +16,8 @@ enum NotificationType {
   leaveSubmitted,
   profileUpdate,
   general,
-  newLeaveRequest, // For teachers/admin
-  leaveStatusChanged, // For parents/students
+  newLeaveRequest,
+  leaveStatusChanged,
   systemAlert,
 }
 
@@ -50,7 +50,6 @@ class NotificationModel {
     required this.icon,
   });
 
-  // Convert to Map for storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -68,7 +67,6 @@ class NotificationModel {
     };
   }
 
-  // Create from Map for retrieval
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
     return NotificationModel(
       id: map['id'],
@@ -89,7 +87,6 @@ class NotificationModel {
     );
   }
 
-  // Create a copy with updated properties
   NotificationModel copyWith({
     String? id,
     String? title,
@@ -120,7 +117,6 @@ class NotificationModel {
     );
   }
 
-  // Factory method to create from LeaveModel
   factory NotificationModel.fromLeaveModel(LeaveModel leave) {
     String title;
     String message;
@@ -172,7 +168,6 @@ class NotificationModel {
     );
   }
 
-  // Factory method for teacher/admin notifications about new leave requests
   factory NotificationModel.newLeaveRequest(LeaveModel leave) {
     return NotificationModel(
       id: 'new_leave_${leave.id}',
@@ -188,7 +183,6 @@ class NotificationModel {
     );
   }
 
-  // Factory method for parent notifications about their child's leave status
   factory NotificationModel.parentLeaveUpdate(LeaveModel leave) {
     String title;
     String message;
@@ -232,7 +226,6 @@ class NotificationModel {
     );
   }
 
-  // Factory method for profile updates
   factory NotificationModel.profileUpdate(
     String message, {
     String? studentName,
@@ -251,7 +244,6 @@ class NotificationModel {
     );
   }
 
-  // Factory method for general notifications
   factory NotificationModel.general(String title, String message) {
     return NotificationModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -291,24 +283,21 @@ class NotificationController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LeaveService _leaveService = LeaveService();
 
-  // User role variables
   var userRole = ''.obs;
   var isParent = false.obs;
   var isTeacher = false.obs;
   var userEmail = ''.obs;
   var uid = ''.obs;
 
-  // Track notification states locally
   final Set<String> _readNotifications = <String>{};
   final Set<String> _deletedNotifications = <String>{};
   final Map<String, String> _lastProfileHash = <String, String>{};
 
-  // Stream subscriptions
   StreamSubscription? _leaveSubscription;
   StreamSubscription? _profileSubscription;
   StreamSubscription? _allStudentsLeaveSubscription;
+  StreamSubscription? _notificationStatesSubscription;
 
-  // Storage keys
   String get _storageKey => 'notifications_${uid.value}';
   String get _readNotificationsKey => 'read_notifications_${uid.value}';
   String get _deletedNotificationsKey => 'deleted_notifications_${uid.value}';
@@ -325,10 +314,10 @@ class NotificationController extends GetxController {
     _leaveSubscription?.cancel();
     _profileSubscription?.cancel();
     _allStudentsLeaveSubscription?.cancel();
+    _notificationStatesSubscription?.cancel();
     super.onClose();
   }
 
-  // Initialize notifications based on user role
   Future<void> initializeNotifications() async {
     try {
       isLoading.value = true;
@@ -345,13 +334,10 @@ class NotificationController extends GetxController {
         return;
       }
 
-      // Load notification states from local storage
       await _loadNotificationStatesFromStorage();
-
-      // Load existing notifications from storage first
       await _loadNotificationsFromStorage();
+      await _setupNotificationStatesListener();
 
-      // Initialize based on role
       if (userRole.value == 'parent' || isParent.value) {
         await _initializeParentNotifications();
       } else if (userRole.value == 'teacher' || isTeacher.value) {
@@ -373,53 +359,118 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Load notification states from SharedPreferences
+  // Update the _setupNotificationStatesListener method
+  Future<void> _setupNotificationStatesListener() async {
+    try {
+      String collection;
+      String userId;
+
+      if (isParent.value && parentStudentData.value != null) {
+        // For parents, listen to their student's notification states
+        collection = 'students';
+        userId =
+            parentStudentData.value!['studentId'] ??
+            parentStudentData.value!['uid'];
+      } else {
+        // For teachers/students, listen to their own notification states
+        collection = isTeacher.value ? 'teachers' : 'students';
+        userId = uid.value;
+      }
+
+      if (userId.isEmpty) {
+        print('❌ User ID is empty');
+        return;
+      }
+
+      _notificationStatesSubscription?.cancel();
+      _notificationStatesSubscription = _firestore
+          .collection(collection)
+          .doc(userId)
+          .collection('notification_states')
+          .snapshots()
+          .listen((snapshot) async {
+            for (var doc in snapshot.docChanges) {
+              final data = doc.doc.data() as Map<String, dynamic>?;
+              if (data == null) continue;
+
+              final notificationId = doc.doc.id;
+
+              // Update local state
+              if (data['isRead'] == true) {
+                _readNotifications.add(notificationId);
+              } else if (data['isRead'] == false) {
+                _readNotifications.remove(notificationId);
+              }
+
+              if (data['isDeleted'] == true) {
+                _deletedNotifications.add(notificationId);
+              } else if (data['isDeleted'] == false) {
+                _deletedNotifications.remove(notificationId);
+              }
+
+              // Update the notification in the list
+              final index = notifications.indexWhere(
+                (n) => n.id == notificationId,
+              );
+              if (index != -1) {
+                notifications[index] = notifications[index].copyWith(
+                  isRead: _readNotifications.contains(notificationId),
+                  isDeleted: _deletedNotifications.contains(notificationId),
+                );
+              }
+            }
+
+            // Remove deleted notifications from the list
+            notifications.removeWhere(
+              (n) => _deletedNotifications.contains(n.id),
+            );
+            _updateUnreadCount();
+            await _saveNotificationStatesToStorage();
+          });
+    } catch (e) {
+      print('❌ Error setting up notification states listener: $e');
+    }
+  }
+
   Future<void> _loadNotificationStatesFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
-      // Load read notifications
       final readNotifs = prefs.getStringList(_readNotificationsKey) ?? [];
-      _readNotifications.addAll(readNotifs);
-      
-      // Load deleted notifications
       final deletedNotifs = prefs.getStringList(_deletedNotificationsKey) ?? [];
+      _readNotifications.addAll(readNotifs);
       _deletedNotifications.addAll(deletedNotifs);
-      
-      // Load profile hash
+
       final profileHashJson = prefs.getString(_profileHashKey);
       if (profileHashJson != null) {
-        final Map<String, dynamic> hashMap = json.decode(profileHashJson);
-        _lastProfileHash.addAll(hashMap.cast<String, String>());
+        _lastProfileHash.addAll(
+          Map<String, String>.from(json.decode(profileHashJson)),
+        );
       }
-      
-      print('✅ Loaded notification states: ${_readNotifications.length} read, ${_deletedNotifications.length} deleted');
+
+      print('✅ Loaded notification states from storage');
     } catch (e) {
       print('❌ Error loading notification states: $e');
     }
   }
 
-  // Save notification states to SharedPreferences
   Future<void> _saveNotificationStatesToStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
-      // Save read notifications
-      await prefs.setStringList(_readNotificationsKey, _readNotifications.toList());
-      
-      // Save deleted notifications
-      await prefs.setStringList(_deletedNotificationsKey, _deletedNotifications.toList());
-      
-      // Save profile hash
+      await prefs.setStringList(
+        _readNotificationsKey,
+        _readNotifications.toList(),
+      );
+      await prefs.setStringList(
+        _deletedNotificationsKey,
+        _deletedNotifications.toList(),
+      );
       await prefs.setString(_profileHashKey, json.encode(_lastProfileHash));
-      
       print('✅ Saved notification states to storage');
     } catch (e) {
       print('❌ Error saving notification states: $e');
     }
   }
 
-  // Load notifications from SharedPreferences
   Future<void> _loadNotificationsFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -430,22 +481,25 @@ class NotificationController extends GetxController {
         final List<NotificationModel> loadedNotifications = notificationsList
             .map((json) => NotificationModel.fromMap(json))
             .where((notif) => !_deletedNotifications.contains(notif.id))
-            .map((notif) => notif.copyWith(
-                  isRead: _readNotifications.contains(notif.id),
-                  isDeleted: _deletedNotifications.contains(notif.id),
-                ))
+            .map(
+              (notif) => notif.copyWith(
+                isRead: _readNotifications.contains(notif.id),
+                isDeleted: _deletedNotifications.contains(notif.id),
+              ),
+            )
             .toList();
 
         notifications.value = loadedNotifications;
         _updateUnreadCount();
-        print('✅ Loaded ${loadedNotifications.length} notifications from storage');
+        print(
+          '✅ Loaded ${loadedNotifications.length} notifications from storage',
+        );
       }
     } catch (e) {
       print('❌ Error loading notifications from storage: $e');
     }
   }
 
-  // Save notifications to SharedPreferences
   Future<void> _saveNotificationsToStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -460,26 +514,23 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Get user details from SharedPreferences
   Future<void> _getUserDetailsFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       uid.value = prefs.getString('uid') ?? '';
       userRole.value = prefs.getString('userRole') ?? '';
       isParent.value = prefs.getBool('isParent') ?? false;
       isTeacher.value = prefs.getBool('isTeacher') ?? false;
       userEmail.value = prefs.getString('Email') ?? '';
 
-      print('👤 Notification Controller - User Role: ${userRole.value}');
-      print('👤 Notification Controller - Is Parent: ${isParent.value}');
-      print('👤 Notification Controller - Is Teacher: ${isTeacher.value}');
+      print('👤 User Role: ${userRole.value}');
+      print('👤 Is Parent: ${isParent.value}');
+      print('👤 Is Teacher: ${isTeacher.value}');
     } catch (e) {
       print('❌ Error getting user details from prefs: $e');
     }
   }
 
-  // Generate profile hash to detect changes
   String _generateProfileHash(Map<String, dynamic> profileData) {
     final relevantFields = {
       'fullName': profileData['fullName'],
@@ -492,21 +543,14 @@ class NotificationController extends GetxController {
     return relevantFields.toString().hashCode.toString();
   }
 
-  // Initialize parent-specific notifications
   Future<void> _initializeParentNotifications() async {
     print('👨‍👩‍👧‍👦 Initializing parent notifications...');
-
-    // Find student data using parent email
     final studentData = await _verifyParentEmailInStudents(userEmail.value);
 
     if (studentData != null) {
       parentStudentData.value = studentData;
       student.value = Student.fromMap(studentData);
-
-      // Setup leave notifications for parent's child
       _setupParentLeaveNotifications(studentData['studentId']);
-
-      // Setup profile notifications for parent's child
       _setupParentProfileNotifications(studentData['studentId']);
     } else {
       Get.snackbar(
@@ -519,33 +563,20 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Initialize teacher-specific notifications
   Future<void> _initializeTeacherNotifications() async {
     print('👨‍💼 Initializing teacher notifications...');
-
     await _fetchCurrentUserData();
-
-    // Setup notifications for all students' leave requests
     _setupTeacherLeaveNotifications();
-
-    // Setup profile notifications for teacher
     _setupProfileNotifications(uid.value);
   }
 
-  // Initialize student-specific notifications
   Future<void> _initializeStudentNotifications() async {
     print('👨‍🎓 Initializing student notifications...');
-
     await _fetchCurrentUserData();
-
-    // Setup leave notifications for student's own leaves
     _setupStudentLeaveNotifications(uid.value);
-
-    // Setup profile notifications for student
     _setupProfileNotifications(uid.value);
   }
 
-  // Verify parent email in students collection
   Future<Map<String, dynamic>?> _verifyParentEmailInStudents(
     String parentEmail,
   ) async {
@@ -557,8 +588,17 @@ class NotificationController extends GetxController {
 
       if (querySnapshot.docs.isNotEmpty) {
         final studentData = querySnapshot.docs.first.data();
+        // Ensure studentId is always set
         studentData['studentId'] = querySnapshot.docs.first.id;
+
+        // Add debug logging
+        print(
+          '✅ Found student for parent: ${studentData['fullName']} (ID: ${studentData['studentId']})',
+        );
+
         return studentData;
+      } else {
+        print('❌ No student found for parent email: $parentEmail');
       }
       return null;
     } catch (e) {
@@ -567,19 +607,15 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Fetch current user data
   Future<void> _fetchCurrentUserData() async {
     try {
-      DocumentSnapshot? userDoc;
-
-      // Try teachers first
-      userDoc = await _firestore.collection('teachers').doc(uid.value).get();
-
+      DocumentSnapshot? userDoc = await _firestore
+          .collection('teachers')
+          .doc(uid.value)
+          .get();
       if (!userDoc.exists) {
-        // Try students
         userDoc = await _firestore.collection('students').doc(uid.value).get();
       }
-
       if (userDoc.exists) {
         student.value = Student.fromMap(userDoc.data() as Map<String, dynamic>);
       }
@@ -588,11 +624,9 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Setup leave notifications for parent's child
   void _setupParentLeaveNotifications(String studentId) {
     try {
       _leaveSubscription?.cancel();
-
       _leaveSubscription = _firestore
           .collection('students')
           .doc(studentId)
@@ -602,30 +636,20 @@ class NotificationController extends GetxController {
           .listen(
             (snapshot) {
               final List<NotificationModel> leaveNotifications = [];
-
               for (var leaveDoc in snapshot.docs) {
                 final leave = LeaveModel.fromFirestore(leaveDoc).copyWith(
                   id: leaveDoc.id,
                   uid: studentId,
                   fullName: parentStudentData.value?['fullName'],
                 );
-
-                // Create parent-specific notification
                 final notification = NotificationModel.parentLeaveUpdate(leave);
-
-                // Skip if deleted
-                if (_deletedNotifications.contains(notification.id)) {
-                  continue;
-                }
-
-                // Apply read state
-                final updatedNotification = notification.copyWith(
-                  isRead: _readNotifications.contains(notification.id),
+                if (_deletedNotifications.contains(notification.id)) continue;
+                leaveNotifications.add(
+                  notification.copyWith(
+                    isRead: _readNotifications.contains(notification.id),
+                  ),
                 );
-                
-                leaveNotifications.add(updatedNotification);
               }
-
               _updateLeaveNotifications(leaveNotifications);
             },
             onError: (error) {
@@ -637,11 +661,9 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Setup leave notifications for student's own leaves
   void _setupStudentLeaveNotifications(String studentId) {
     try {
       _leaveSubscription?.cancel();
-
       _leaveSubscription = _firestore
           .collection('students')
           .doc(studentId)
@@ -651,29 +673,18 @@ class NotificationController extends GetxController {
           .listen(
             (snapshot) {
               final List<NotificationModel> leaveNotifications = [];
-
               for (var leaveDoc in snapshot.docs) {
-                final leave = LeaveModel.fromFirestore(leaveDoc).copyWith(
-                  id: leaveDoc.id, 
-                  uid: studentId
-                );
-
-                // Create student notification
+                final leave = LeaveModel.fromFirestore(
+                  leaveDoc,
+                ).copyWith(id: leaveDoc.id, uid: studentId);
                 final notification = NotificationModel.fromLeaveModel(leave);
-
-                // Skip if deleted
-                if (_deletedNotifications.contains(notification.id)) {
-                  continue;
-                }
-
-                // Apply read state
-                final updatedNotification = notification.copyWith(
-                  isRead: _readNotifications.contains(notification.id),
+                if (_deletedNotifications.contains(notification.id)) continue;
+                leaveNotifications.add(
+                  notification.copyWith(
+                    isRead: _readNotifications.contains(notification.id),
+                  ),
                 );
-                
-                leaveNotifications.add(updatedNotification);
               }
-
               _updateLeaveNotifications(leaveNotifications);
             },
             onError: (error) {
@@ -685,14 +696,21 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Setup leave notifications for teacher (all students)
-  void _setupTeacherLeaveNotifications() {
+  void _setupTeacherLeaveNotifications() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      String? department = prefs.getString('department');
+
+      if (department == null || department.isEmpty) {
+        print('⚠️ Department not found in SharedPreferences');
+        return;
+      }
+
       _allStudentsLeaveSubscription?.cancel();
 
-      _allStudentsLeaveSubscription = _firestore
+      _allStudentsLeaveSubscription = FirebaseFirestore.instance
           .collection('students')
-          .where("department", isEqualTo: "CS")
+          .where("department", isEqualTo: department)
           .snapshots()
           .asyncMap((studentSnapshot) async {
             List<NotificationModel> allNotifications = [];
@@ -714,20 +732,15 @@ class NotificationController extends GetxController {
                     department: studentDoc['department'],
                   );
 
-                  // Create teacher notification for new leave requests
                   final notification = NotificationModel.newLeaveRequest(leave);
 
-                  // Skip if deleted
-                  if (_deletedNotifications.contains(notification.id)) {
-                    continue;
-                  }
+                  if (_deletedNotifications.contains(notification.id)) continue;
 
-                  // Apply read state
-                  final updatedNotification = notification.copyWith(
-                    isRead: _readNotifications.contains(notification.id),
+                  allNotifications.add(
+                    notification.copyWith(
+                      isRead: _readNotifications.contains(notification.id),
+                    ),
                   );
-                  
-                  allNotifications.add(updatedNotification);
                 }
               } catch (e) {
                 print('❌ Error processing student ${studentDoc.id}: $e');
@@ -749,11 +762,9 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Setup profile notifications for parent's child
   void _setupParentProfileNotifications(String studentId) {
     try {
       _profileSubscription?.cancel();
-
       _profileSubscription = _firestore
           .collection('students')
           .doc(studentId)
@@ -765,21 +776,17 @@ class NotificationController extends GetxController {
                 final newHash = _generateProfileHash(newStudentData);
                 final lastHash = _lastProfileHash[studentId];
 
-                // Only create notification if profile actually changed
                 if (lastHash != null && lastHash != newHash) {
                   final profileNotification = NotificationModel.profileUpdate(
                     'Your child\'s profile information has been updated',
                     studentName: newStudentData['fullName'],
                     userId: studentId,
                   );
-
                   _addUniqueNotification(profileNotification);
                 }
 
-                // Update stored hash
                 _lastProfileHash[studentId] = newHash;
                 _saveNotificationStatesToStorage();
-
                 parentStudentData.value = newStudentData;
                 student.value = Student.fromMap(newStudentData);
               }
@@ -793,13 +800,10 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Setup profile notifications
   void _setupProfileNotifications(String userId) {
     try {
       _profileSubscription?.cancel();
-
       String collection = isTeacher.value ? 'teachers' : 'students';
-
       _profileSubscription = _firestore
           .collection(collection)
           .doc(userId)
@@ -811,20 +815,16 @@ class NotificationController extends GetxController {
                 final newHash = _generateProfileHash(newProfileData);
                 final lastHash = _lastProfileHash[userId];
 
-                // Only create notification if profile actually changed
                 if (lastHash != null && lastHash != newHash) {
                   final profileNotification = NotificationModel.profileUpdate(
                     'Your profile information has been updated successfully',
                     userId: userId,
                   );
-
                   _addUniqueNotification(profileNotification);
                 }
 
-                // Update stored hash
                 _lastProfileHash[userId] = newHash;
                 _saveNotificationStatesToStorage();
-
                 student.value = Student.fromMap(newProfileData);
               }
             },
@@ -837,9 +837,7 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Update leave notifications in the main list
   void _updateLeaveNotifications(List<NotificationModel> leaveNotifications) {
-    // Remove existing leave notifications
     notifications.removeWhere(
       (notif) =>
           notif.type == NotificationType.leaveApproved ||
@@ -850,31 +848,24 @@ class NotificationController extends GetxController {
           notif.type == NotificationType.leaveStatusChanged,
     );
 
-    // Add new leave notifications
     notifications.addAll(leaveNotifications);
-
-    // Sort by timestamp (newest first)
     notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
     _updateUnreadCount();
     _saveNotificationsToStorage();
   }
 
-  // Add unique notification (avoid duplicates)
   void _addUniqueNotification(NotificationModel notification) {
-    // Check if notification already exists
-    final existingIndex = notifications.indexWhere((notif) => notif.id == notification.id);
-    
-    if (existingIndex == -1) {
-      // Don't add if it's deleted
-      if (!_deletedNotifications.contains(notification.id)) {
-        final updatedNotification = notification.copyWith(
-          isRead: _readNotifications.contains(notification.id),
-        );
-        notifications.insert(0, updatedNotification);
-        _updateUnreadCount();
-        _saveNotificationsToStorage();
-      }
+    final existingIndex = notifications.indexWhere(
+      (notif) => notif.id == notification.id,
+    );
+    if (existingIndex == -1 &&
+        !_deletedNotifications.contains(notification.id)) {
+      final updatedNotification = notification.copyWith(
+        isRead: _readNotifications.contains(notification.id),
+      );
+      notifications.insert(0, updatedNotification);
+      _updateUnreadCount();
+      _saveNotificationsToStorage();
     }
   }
 
@@ -883,7 +874,7 @@ class NotificationController extends GetxController {
         .where((notif) => !notif.isRead && !notif.isDeleted)
         .length;
   }
-  // Public methods for managing notifications
+
   Future<void> refreshNotifications() async {
     isRefreshing.value = true;
     await initializeNotifications();
@@ -895,23 +886,9 @@ class NotificationController extends GetxController {
       (notif) => notif.id == notificationId,
     );
     if (index != -1 && !notifications[index].isRead) {
-      final updatedNotification = NotificationModel(
-        id: notifications[index].id,
-        title: notifications[index].title,
-        message: notifications[index].message,
-        type: notifications[index].type,
-        timestamp: notifications[index].timestamp,
-        isRead: true,
-        relatedLeaveId: notifications[index].relatedLeaveId,
-        relatedStudentId: notifications[index].relatedStudentId,
-        relatedStudentName: notifications[index].relatedStudentName,
-        backgroundColor: notifications[index].backgroundColor,
-        icon: notifications[index].icon,
-      );
-
-      notifications[index] = updatedNotification;
+      notifications[index] = notifications[index].copyWith(isRead: true);
+      _readNotifications.add(notificationId);
       _updateUnreadCount();
-      // Persist read state in Firestore
       await _saveNotificationStateToFirestore(notificationId, isRead: true);
     }
   }
@@ -920,21 +897,8 @@ class NotificationController extends GetxController {
     List<Future> futures = [];
     for (int i = 0; i < notifications.length; i++) {
       if (!notifications[i].isRead) {
-        final updatedNotification = NotificationModel(
-          id: notifications[i].id,
-          title: notifications[i].title,
-          message: notifications[i].message,
-          type: notifications[i].type,
-          timestamp: notifications[i].timestamp,
-          isRead: true,
-          relatedLeaveId: notifications[i].relatedLeaveId,
-          relatedStudentId: notifications[i].relatedStudentId,
-          relatedStudentName: notifications[i].relatedStudentName,
-          backgroundColor: notifications[i].backgroundColor,
-          icon: notifications[i].icon,
-        );
-        notifications[i] = updatedNotification;
-        // Persist read state in Firestore
+        notifications[i] = notifications[i].copyWith(isRead: true);
+        _readNotifications.add(notifications[i].id);
         futures.add(
           _saveNotificationStateToFirestore(notifications[i].id, isRead: true),
         );
@@ -945,31 +909,29 @@ class NotificationController extends GetxController {
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    // Mark as deleted in Firestore
     await _saveNotificationStateToFirestore(notificationId, isDeleted: true);
+    _deletedNotifications.add(notificationId);
     notifications.removeWhere((notif) => notif.id == notificationId);
     _updateUnreadCount();
   }
 
   Future<void> clearAllNotifications() async {
-    // Mark all as deleted in Firestore
     List<Future> futures = [];
     for (final notif in notifications) {
       futures.add(_saveNotificationStateToFirestore(notif.id, isDeleted: true));
+      _deletedNotifications.add(notif.id);
     }
     await Future.wait(futures);
     notifications.clear();
     unreadCount.value = 0;
   }
 
-  // Add manual notification
   void addNotification(String title, String message, {NotificationType? type}) {
     final notification = NotificationModel.general(title, message);
     notifications.insert(0, notification);
     _updateUnreadCount();
   }
 
-  // Filter methods
   List<NotificationModel> getNotificationsByType(NotificationType type) {
     return notifications.where((notif) => notif.type == type).toList();
   }
@@ -995,7 +957,6 @@ class NotificationController extends GetxController {
         .toList();
   }
 
-  // Helper getters
   String get studentName {
     if (isParent.value && parentStudentData.value != null) {
       return parentStudentData.value!['fullName'] ?? 'Student';
@@ -1020,7 +981,6 @@ class NotificationController extends GetxController {
   String get currentUserEmail => userEmail.value;
   String get currentUserId => uid.value;
 
-  // Get role-specific welcome message for notifications
   String get notificationWelcomeMessage {
     if (isParent.value) {
       return 'Stay updated with your child\'s activities';
@@ -1031,7 +991,6 @@ class NotificationController extends GetxController {
     }
   }
 
-  // Get notification statistics
   Map<String, int> get notificationStats {
     final stats = {
       'total': notifications.length,
@@ -1064,20 +1023,61 @@ class NotificationController extends GetxController {
     return stats;
   }
 
-  // Save notification state (read/deleted) to local storage
   Future<void> _saveNotificationStateToFirestore(
     String notificationId, {
     bool? isRead,
     bool? isDeleted,
   }) async {
-    // This implementation only updates local state and SharedPreferences.
-    // If you want to sync with Firestore, add Firestore update logic here.
-    if (isRead == true) {
-      _readNotifications.add(notificationId);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? userId = prefs.getString('uid');
+      bool isParentUser = prefs.getBool('isParent') ?? false;
+      bool isTeacherUser = prefs.getBool('isTeacher') ?? false;
+
+      String collection = isTeacherUser ? 'teachers' : 'students';
+
+      if (isParentUser && parentStudentData.value != null) {
+        print("📦 Full parentStudentData: ${parentStudentData.value}");
+        print("🗂️ Available keys: ${parentStudentData.value?.keys}");
+
+        final sid = parentStudentData.value!['parentUid']
+            ?.toString(); // <- FIXED HERE
+
+        if (sid == null || sid.isEmpty) {
+          print("❌ student UID in parentStudentData is null or empty");
+          return;
+        }
+
+        userId = sid;
+        collection = 'students';
+
+        print("👨‍👩‍👧 Parent's student UID: 🎯 $userId");
+      }
+
+      if (userId == null || userId.isEmpty) {
+        print("❌ UID is null or empty. Cannot update Firestore.");
+        return;
+      }
+
+      print("👤 Using user ID: 🚀 $userId");
+      print("📚 Firestore collection: $collection");
+
+      Map<String, dynamic> updateData = {};
+      if (isRead != null) updateData['isRead'] = isRead;
+      if (isDeleted != null) updateData['isDeleted'] = isDeleted;
+      updateData['lastUpdated'] = FieldValue.serverTimestamp();
+
+      await _firestore
+          .collection(collection)
+          .doc(userId)
+          .collection('notification_states')
+          .doc(notificationId)
+          .set(updateData, SetOptions(merge: true));
+
+      print("✅ Notification state saved for userId: $userId");
+    } catch (e, stackTrace) {
+      print('❌ Error saving notification state to Firestore: $e');
+      print('🧵 Stack Trace:\n$stackTrace');
     }
-    if (isDeleted == true) {
-      _deletedNotifications.add(notificationId);
-    }
-    await _saveNotificationStatesToStorage();
   }
 }
