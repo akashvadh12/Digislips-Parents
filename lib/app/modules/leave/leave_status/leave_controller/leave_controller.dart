@@ -451,7 +451,7 @@ class LeaveController extends GetxController {
   String _getSuccessMessage(String finalStatus, String userAction) {
     if (finalStatus == 'Approved') {
       return 'Leave request approved by both Parent and Teacher';
-    } else if (finalStatus == 'Rejected') {
+    } else if (finalStatus == 'Rejected1') {
       return 'Leave request rejected';
     } else if (finalStatus == 'Partially Approved') {
       return 'Leave request ${userAction.toLowerCase()} by ${userRole.value}. Waiting for other approval.';
