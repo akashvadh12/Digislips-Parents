@@ -1,4 +1,4 @@
-package com.example.digislips
+package com.digislip_parent_app
 
 import io.flutter.embedding.android.FlutterActivity
 

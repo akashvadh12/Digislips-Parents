@@ -11,7 +11,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 class LeaveRequestsScreen extends StatelessWidget {
-  const LeaveRequestsScreen({Key? key}) : super(key: key);
+  const LeaveRequestsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -34,28 +34,35 @@ class LeaveRequestsScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 10),
-                          child: Row(
-                            children: [
-                              Obx(() => Text(
-                                leaveController.canApproveReject 
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => Get.back(),
+                            ),
+                            const SizedBox(width: 4),
+                            Obx(
+                              () => Text(
+                                leaveController.canApproveReject
                                     ? 'Leave Applications'
                                     : 'My Leave Requests',
                                 style: AppTextStyles.welcomeTitle,
-                              )),
-                              const SizedBox(width: 4),
-                              Obx(
-                                () => Text(
-                                  '(${leaveController.filteredRequests.length})',
-                                  style: AppTextStyles.welcomeTitle.copyWith(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Obx(
+                              () => Text(
+                                '(${leaveController.filteredRequests.length})',
+                                style: AppTextStyles.welcomeTitle.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -89,14 +96,19 @@ class LeaveRequestsScreen extends StatelessWidget {
               Obx(() {
                 if (leaveController.canApproveReject) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: _buildQuickStatCard(
                             'Pending',
                             leaveController.leaveRequests
-                                .where((r) => r.status.toLowerCase() == 'pending')
+                                .where(
+                                  (r) => r.status.toLowerCase() == 'pending',
+                                )
                                 .length
                                 .toString(),
                             AppColors.warning,
@@ -108,7 +120,9 @@ class LeaveRequestsScreen extends StatelessWidget {
                           child: _buildQuickStatCard(
                             'Approved',
                             leaveController.leaveRequests
-                                .where((r) => r.status.toLowerCase() == 'approved')
+                                .where(
+                                  (r) => r.status.toLowerCase() == 'approved',
+                                )
                                 .length
                                 .toString(),
                             AppColors.success,
@@ -120,7 +134,9 @@ class LeaveRequestsScreen extends StatelessWidget {
                           child: _buildQuickStatCard(
                             'Rejected',
                             leaveController.leaveRequests
-                                .where((r) => r.status.toLowerCase() == 'rejected')
+                                .where(
+                                  (r) => r.status.toLowerCase() == 'rejected',
+                                )
                                 .length
                                 .toString(),
                             AppColors.error,
@@ -213,20 +229,31 @@ class LeaveRequestsScreen extends StatelessWidget {
                                 color: AppColors.primary,
                                 child: ListView.builder(
                                   itemCount: filteredRequests.length,
-                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
                                   itemBuilder: (context, index) {
                                     final request = filteredRequests[index];
                                     return LeaveRequestCard(
                                       leaveRequest: request,
-                                      showStudentInfo: leaveController.canApproveReject,
-                                      onTap: () => _showLeaveDetailDialog(context, request),
-                                      onApprove: leaveController.canApproveReject &&
-                                              request.status.toLowerCase() == 'pending'
-                                          ? () => leaveController.showApprovalDialog(request)
+                                      showStudentInfo:
+                                          leaveController.canApproveReject,
+                                      onTap: () => _showLeaveDetailDialog(
+                                        context,
+                                        request,
+                                      ),
+                                      onApprove:
+                                          leaveController.canApproveReject &&
+                                              request.status.toLowerCase() ==
+                                                  'pending'
+                                          ? () => leaveController
+                                                .showApprovalDialog(request)
                                           : null,
-                                      onReject: leaveController.canApproveReject &&
-                                              request.status.toLowerCase() == 'pending'
-                                          ? () => leaveController.showApprovalDialog(request)
+                                      onReject:
+                                          leaveController.canApproveReject &&
+                                              request.status.toLowerCase() ==
+                                                  'pending'
+                                          ? () => leaveController
+                                                .showApprovalDialog(request)
                                           : null,
                                     );
                                   },
@@ -267,17 +294,14 @@ class LeaveRequestsScreen extends StatelessWidget {
               leaveController.selectedFilter.value = filter;
             }
           },
-          backgroundColor: Colors.white,
-          selectedColor: AppColors.primary,
+          selectedColor: AppColors.approvedColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: isSelected ? AppColors.primary : AppColors.borderColor,
-            ),
           ),
+          backgroundColor: Colors.white,
           showCheckmark: false,
-          elevation: 0,
-          pressElevation: 2,
+          elevation: 2,
+          pressElevation: 4,
         ),
       );
     });
@@ -306,11 +330,7 @@ class LeaveRequestsScreen extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(
-                  icon,
-                  size: 16,
-                  color: color,
-                ),
+                child: Icon(icon, size: 16, color: color),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -343,13 +363,11 @@ class LeaveRequestsScreen extends StatelessWidget {
 
   void _showLeaveDetailDialog(BuildContext context, LeaveModel request) {
     final dateFormat = DateFormat('MMM dd, yyyy');
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Container(
@@ -397,23 +415,19 @@ class LeaveRequestsScreen extends StatelessWidget {
                 _buildDetailRow('Email', request.email!),
               if (request.phone != null && request.phone!.isNotEmpty)
                 _buildDetailRow('Phone', request.phone!),
-              if (request.parentEmail != null && request.parentEmail!.isNotEmpty)
+              if (request.parentEmail != null &&
+                  request.parentEmail!.isNotEmpty)
                 _buildDetailRow('Parent Email', request.parentEmail!),
-              if (request.parentPhone != null && request.parentPhone!.isNotEmpty)
+              if (request.parentPhone != null &&
+                  request.parentPhone!.isNotEmpty)
                 _buildDetailRow('Parent Phone', request.parentPhone!),
               const Divider(),
               _buildDetailRow(
                 'Duration',
                 '${request.totalDays} ${request.totalDays == 1 ? 'day' : 'days'}',
               ),
-              _buildDetailRow(
-                'From Date',
-                dateFormat.format(request.fromDate),
-              ),
-              _buildDetailRow(
-                'To Date',
-                dateFormat.format(request.toDate),
-              ),
+              _buildDetailRow('From Date', dateFormat.format(request.fromDate)),
+              _buildDetailRow('To Date', dateFormat.format(request.toDate)),
               if (request.reason.isNotEmpty)
                 _buildDetailRow('Reason', request.reason),
               if (request.destination.isNotEmpty)
@@ -430,8 +444,12 @@ class LeaveRequestsScreen extends StatelessWidget {
               if (request.reviewedBy != null && request.reviewedBy!.isNotEmpty)
                 _buildDetailRow('Reviewed By', request.reviewedBy!),
               if (request.reviewedAt != null)
-                _buildDetailRow('Reviewed On', dateFormat.format(request.reviewedAt!)),
-              if (request.reviewComments != null && request.reviewComments!.isNotEmpty)
+                _buildDetailRow(
+                  'Reviewed On',
+                  dateFormat.format(request.reviewedAt!),
+                ),
+              if (request.reviewComments != null &&
+                  request.reviewComments!.isNotEmpty)
                 _buildDetailRow('Review Comments', request.reviewComments!),
               if (request.documentUrls.isNotEmpty)
                 _buildDetailRow(
@@ -465,10 +483,7 @@ class LeaveRequestsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: AppTextStyles.body,
-          ),
+          Text(value, style: AppTextStyles.body),
         ],
       ),
     );

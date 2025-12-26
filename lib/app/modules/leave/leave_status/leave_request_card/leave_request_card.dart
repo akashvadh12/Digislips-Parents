@@ -13,30 +13,27 @@ class LeaveRequestCard extends StatelessWidget {
   final VoidCallback? onReject;
 
   const LeaveRequestCard({
-    Key? key,
+    super.key,
     required this.leaveRequest,
     this.onTap,
     this.showStudentInfo = false,
     this.onApprove,
     this.onReject,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM dd, yyyy');
-    
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.blackColor.withOpacity(0.04),
+            color: AppColors.blackColor.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -47,6 +44,7 @@ class LeaveRequestCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
+
           child: Container(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -61,7 +59,9 @@ class LeaveRequestCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: _getLeaveTypeColor().withOpacity(0.1),
+                              color: _getLeaveTypeColor().withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -76,8 +76,8 @@ class LeaveRequestCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  leaveRequest.leaveType.isEmpty 
-                                      ? 'Leave Request' 
+                                  leaveRequest.leaveType.isEmpty
+                                      ? 'Leave Request'
                                       : leaveRequest.leaveType,
                                   style: AppTextStyles.title.copyWith(
                                     fontSize: 16,
@@ -86,7 +86,8 @@ class LeaveRequestCard extends StatelessWidget {
                                 if (showStudentInfo) ...[
                                   const SizedBox(height: 4),
                                   // Show student name and roll number if available
-                                  if (leaveRequest.fullName != null && leaveRequest.fullName!.isNotEmpty)
+                                  if (leaveRequest.fullName != null &&
+                                      leaveRequest.fullName!.isNotEmpty)
                                     Text(
                                       leaveRequest.fullName!,
                                       style: AppTextStyles.bodyMedium.copyWith(
@@ -96,7 +97,8 @@ class LeaveRequestCard extends StatelessWidget {
                                       ),
                                     ),
                                   // Show roll number and department
-                                  if (leaveRequest.rollNumber != null && leaveRequest.rollNumber!.isNotEmpty)
+                                  if (leaveRequest.rollNumber != null &&
+                                      leaveRequest.rollNumber!.isNotEmpty)
                                     Text(
                                       '${leaveRequest.rollNumber}${leaveRequest.department != null && leaveRequest.department!.isNotEmpty ? ' | ${leaveRequest.department}' : ''}',
                                       style: AppTextStyles.bodyMedium.copyWith(
@@ -105,7 +107,8 @@ class LeaveRequestCard extends StatelessWidget {
                                       ),
                                     ),
                                   // Show semester if available
-                                  if (leaveRequest.semester != null && leaveRequest.semester!.isNotEmpty)
+                                  if (leaveRequest.semester != null &&
+                                      leaveRequest.semester!.isNotEmpty)
                                     Text(
                                       'Semester ${leaveRequest.semester}',
                                       style: AppTextStyles.bodyMedium.copyWith(
@@ -124,7 +127,7 @@ class LeaveRequestCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Date Range or Duration Info
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -152,9 +155,12 @@ class LeaveRequestCard extends StatelessWidget {
                       ),
                       if (leaveRequest.totalDays > 0) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -170,20 +176,20 @@ class LeaveRequestCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Reason or Review Comments
-                if (leaveRequest.status.toLowerCase() == 'rejected' && 
-                    leaveRequest.reviewComments != null && 
+                if (leaveRequest.status.toLowerCase() == 'rejected' &&
+                    leaveRequest.reviewComments != null &&
                     leaveRequest.reviewComments!.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.05),
+                      color: AppColors.error.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.error.withOpacity(0.2),
+                        color: AppColors.error.withValues(alpha: 0.2),
                         width: 1,
                       ),
                     ),
@@ -219,16 +225,16 @@ class LeaveRequestCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ] else if (leaveRequest.status.toLowerCase() == 'approved' && 
-                          leaveRequest.reviewComments != null && 
-                          leaveRequest.reviewComments!.isNotEmpty) ...[
+                ] else if (leaveRequest.status.toLowerCase() == 'approved' &&
+                    leaveRequest.reviewComments != null &&
+                    leaveRequest.reviewComments!.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.05),
+                      color: AppColors.success.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.success.withOpacity(0.2),
+                        color: AppColors.success.withValues(alpha: 0.2),
                         width: 1,
                       ),
                     ),
@@ -267,16 +273,14 @@ class LeaveRequestCard extends StatelessWidget {
                 ] else if (leaveRequest.reason.isNotEmpty) ...[
                   Text(
                     'Reason: ${leaveRequest.reason}',
-                    style: AppTextStyles.body.copyWith(
-                      fontSize: 13,
-                    ),
+                    style: AppTextStyles.body.copyWith(fontSize: 13),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Submission date and submitted by info
                 Row(
                   children: [
@@ -296,19 +300,19 @@ class LeaveRequestCard extends StatelessWidget {
                 ),
 
                 // Show reviewed info if available
-                if (leaveRequest.reviewedBy != null && 
-                    leaveRequest.reviewedBy!.isNotEmpty && 
+                if (leaveRequest.reviewedBy != null &&
+                    leaveRequest.reviewedBy!.isNotEmpty &&
                     leaveRequest.reviewedAt != null) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Icon(
-                        leaveRequest.status.toLowerCase() == 'approved' 
-                            ? Icons.check_circle 
+                        leaveRequest.status.toLowerCase() == 'approved'
+                            ? Icons.check_circle
                             : Icons.cancel,
                         size: 14,
-                        color: leaveRequest.status.toLowerCase() == 'approved' 
-                            ? AppColors.success 
+                        color: leaveRequest.status.toLowerCase() == 'approved'
+                            ? AppColors.success
                             : AppColors.error,
                       ),
                       const SizedBox(width: 4),
@@ -316,8 +320,9 @@ class LeaveRequestCard extends StatelessWidget {
                         child: Text(
                           '${leaveRequest.status} on ${dateFormat.format(leaveRequest.reviewedAt!)} by ${leaveRequest.reviewedBy}',
                           style: AppTextStyles.caption.copyWith(
-                            color: leaveRequest.status.toLowerCase() == 'approved' 
-                                ? AppColors.success 
+                            color:
+                                leaveRequest.status.toLowerCase() == 'approved'
+                                ? AppColors.success
                                 : AppColors.error,
                           ),
                         ),
@@ -388,7 +393,7 @@ class LeaveRequestCard extends StatelessWidget {
                 ],
 
                 // Action buttons for pending requests (admin/teacher view)
-                if (leaveRequest.status.toLowerCase() == 'pending' && 
+                if (leaveRequest.status.toLowerCase() == 'pending' &&
                     (onApprove != null || onReject != null)) ...[
                   const SizedBox(height: 16),
                   Row(
