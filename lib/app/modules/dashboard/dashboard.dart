@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class HomeView extends GetView<HomeController> {
+  const HomeView({super.key});
+
   @override
   Widget build(BuildContext context) {
     Get.put(HomeController());
@@ -28,12 +30,12 @@ class HomeView extends GetView<HomeController> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.8),
+                    AppColors.primary.withValues(alpha: 0.8),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -73,9 +75,8 @@ class HomeView extends GetView<HomeController> {
                       Stack(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: IconButton(
@@ -85,14 +86,14 @@ class HomeView extends GetView<HomeController> {
                                 size: 24,
                               ),
                               onPressed: () {
-                                // Get.to(NotificationScreen());
+                                Get.to(NotificationScreen());
                               },
                             ),
                           ),
                           Positioned(
                             right: 8,
                             top: 8,
-                            child: Container(width: 8, height: 8),
+                            child: SizedBox(width: 8, height: 8),
                           ),
                         ],
                       ),
@@ -104,6 +105,8 @@ class HomeView extends GetView<HomeController> {
 
             Expanded(
               child: Container(
+                width: double.infinity,
+                clipBehavior: Clip.antiAlias,
                 decoration: const BoxDecoration(
                   color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.only(
@@ -127,7 +130,12 @@ class HomeView extends GetView<HomeController> {
                           onRefresh: controller.refreshStudentData,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 24,
+                              bottom: 16,
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -140,19 +148,19 @@ class HomeView extends GetView<HomeController> {
                                       end: Alignment.bottomRight,
                                       colors: [
                                         Colors.white,
-                                        Colors.white.withOpacity(0.9),
+                                        Colors.white.withValues(alpha: 0.6),
                                       ],
                                     ),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
+                                        color: Colors.black.withValues(alpha: 0.08),
                                         blurRadius: 20,
                                         offset: const Offset(0, 4),
                                       ),
                                     ],
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
+                                      color: Colors.white.withValues(alpha: 0.2),
                                       width: 1,
                                     ),
                                   ),
@@ -177,7 +185,7 @@ class HomeView extends GetView<HomeController> {
                                           boxShadow: [
                                             BoxShadow(
                                               color: AppColors.primary
-                                                  .withOpacity(0.2),
+                                                  .withValues(alpha: 0.2),
                                               blurRadius: 12,
                                               offset: const Offset(0, 4),
                                             ),
@@ -201,7 +209,20 @@ class HomeView extends GetView<HomeController> {
                                                   : const NetworkImage(''),
                                               fit: BoxFit.cover,
                                               onError: (exception, stackTrace) {
-                                                // Handle image load error
+                                                Icon(
+                                                  Icons.person,
+                                                  size: 30,
+                                                  color: AppColors.primary
+                                                      .withValues(alpha: 0.7),
+                                                );
+                                                Get.snackbar(
+                                                  backgroundColor:
+                                                      AppColors.error,
+                                                  colorText:
+                                                      AppColors.whiteColor,
+                                                  'Error',
+                                                  'Failed to load profile image.',
+                                                );
                                               },
                                             ),
                                           ),
@@ -215,7 +236,7 @@ class HomeView extends GetView<HomeController> {
                                                   Icons.person,
                                                   size: 30,
                                                   color: AppColors.primary
-                                                      .withOpacity(0.7),
+                                                      .withValues(alpha: 0.7),
                                                 )
                                               : null,
                                         ),
@@ -274,8 +295,8 @@ class HomeView extends GetView<HomeController> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: controller.isProfileComplete
-                                              ? Colors.green.withOpacity(0.1)
-                                              : Colors.orange.withOpacity(0.1),
+                                              ? Colors.green.withValues(alpha: 0.1)
+                                              : Colors.orange.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(
                                             20,
                                           ),
@@ -495,7 +516,7 @@ class HomeView extends GetView<HomeController> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradient[0].withOpacity(0.3),
+              color: gradient[0].withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -507,7 +528,7 @@ class HomeView extends GetView<HomeController> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(icon, size: 28, color: Colors.white),
@@ -526,7 +547,7 @@ class HomeView extends GetView<HomeController> {
             Text(
               subtitle,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -567,19 +588,19 @@ class HomeView extends GetView<HomeController> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: statusColor.withOpacity(0.1), width: 1),
+        border: Border.all(color: statusColor.withValues(alpha: 0.1), width: 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -616,7 +637,7 @@ class HomeView extends GetView<HomeController> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(

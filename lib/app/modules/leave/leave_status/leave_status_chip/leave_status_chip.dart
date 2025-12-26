@@ -14,22 +14,22 @@ class StatusChip extends StatelessWidget {
 
     switch (status.toLowerCase()) {
       case 'pending':
-        backgroundColor = AppColors.pendingColor.withOpacity(0.1);
+        backgroundColor = AppColors.pendingColor.withValues(alpha: 0.1);
         textColor = AppColors.pendingColor;
         icon = Icons.schedule;
         break;
       case 'approved':
-        backgroundColor = AppColors.approvedColor.withOpacity(0.1);
+        backgroundColor = AppColors.approvedColor.withValues(alpha: 0.1);
         textColor = AppColors.approvedColor;
         icon = Icons.check_circle;
         break;
       case 'rejected':
-        backgroundColor = AppColors.rejectedColor.withOpacity(0.1);
+        backgroundColor = AppColors.rejectedColor.withValues(alpha: 0.1);
         textColor = AppColors.rejectedColor;
         icon = Icons.cancel;
         break;
       default:
-        backgroundColor = AppColors.greyColor.withOpacity(0.1);
+        backgroundColor = AppColors.greyColor.withValues(alpha: 0.1);
         textColor = AppColors.greyColor;
         icon = Icons.help_outline;
     }
@@ -40,7 +40,7 @@ class StatusChip extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: textColor.withOpacity(0.3),
+          color: textColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),

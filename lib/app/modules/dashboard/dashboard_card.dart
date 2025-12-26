@@ -31,12 +31,12 @@ Widget _buildEnhancedLeaveApplicationCard(LeaveApplication leave) {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.06),
+          color: Colors.black.withValues(alpha: 0.06),
           blurRadius: 15,
           offset: const Offset(0, 4),
         ),
       ],
-      border: Border.all(color: statusColor.withOpacity(0.1), width: 1),
+      border: Border.all(color: statusColor.withValues(alpha: 0.1), width: 1),
     ),
     child: Column(
       children: [
@@ -45,7 +45,7 @@ Widget _buildEnhancedLeaveApplicationCard(LeaveApplication leave) {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -82,7 +82,7 @@ Widget _buildEnhancedLeaveApplicationCard(LeaveApplication leave) {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(

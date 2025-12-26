@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class ContactScreen extends StatelessWidget {
-  const ContactScreen({Key? key}) : super(key: key);
+  const ContactScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class ContactScreen extends StatelessWidget {
                 value: 'clear_filters',
                 child: Row(
                   children: [
-                    Icon(Icons.clear_all),
+                    Icon(Icons.clear_all, color: AppColors.blackColor),
                     SizedBox(width: 8),
                     Text('Clear Filters'),
                   ],
@@ -76,7 +76,7 @@ class ContactScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -167,10 +167,10 @@ class ContactScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: selectedValue == 'All'
-              ? Colors.white.withOpacity(0.2)
+              ? Colors.white.withValues(alpha: 0.2)
               : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.3)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -211,7 +211,7 @@ class ContactScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -252,7 +252,7 @@ class ContactScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -312,13 +312,13 @@ class ContactScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: AppColors.greyColor.withOpacity(0.1),
+              color: AppColors.greyColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
               Icons.contacts,
               size: 64,
-              color: AppColors.greyColor.withOpacity(0.5),
+              color: AppColors.greyColor.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -348,6 +348,7 @@ class ContactScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
+                iconColor: AppColors.blackColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -374,7 +375,7 @@ class ContactScreen extends StatelessWidget {
         border: Border.all(color: AppColors.borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -390,8 +391,8 @@ class ContactScreen extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: isParent
-                    ? AppColors.success.withOpacity(0.1)
-                    : AppColors.primary.withOpacity(0.1),
+                    ? AppColors.success.withValues(alpha: 0.1)
+                    : AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 image:
                     contact['profileImageUrl'] != null &&
@@ -439,8 +440,8 @@ class ContactScreen extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isParent
-                          ? AppColors.success.withOpacity(0.1)
-                          : AppColors.primary.withOpacity(0.1),
+                          ? AppColors.success.withValues(alpha: 0.1)
+                          : AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -521,7 +522,7 @@ class ContactScreen extends StatelessWidget {
                 children: [
                   // Call Button
                   Material(
-                    color: AppColors.success.withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       onTap: () => controller.makePhoneCall(contact['phone']),
@@ -540,7 +541,7 @@ class ContactScreen extends StatelessWidget {
 
                   // SMS Button
                   Material(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       onTap: () => controller.sendSMS(contact['phone']),

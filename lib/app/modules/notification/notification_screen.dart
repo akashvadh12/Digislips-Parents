@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 class NotificationScreen extends StatelessWidget {
   final NotificationController controller = Get.put(NotificationController());
 
-  NotificationScreen({Key? key}) : super(key: key);
+  NotificationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,38 +19,32 @@ class NotificationScreen extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(10, 16, 10, 20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.85),
+                    AppColors.primary.withValues(alpha: 0.85),
                   ],
                 ),
               ),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
+                  if (Navigator.canPop(context))
+                    GestureDetector(
+                      onTap: () =>
+                          navigator?.popUntil((route) => route.isFirst),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 18,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
                     ),
-                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -67,7 +61,7 @@ class NotificationScreen extends StatelessWidget {
                         Text(
                           'Manage your notifications',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -198,7 +192,7 @@ class NotificationScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -209,7 +203,7 @@ class NotificationScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -237,7 +231,7 @@ class NotificationScreen extends StatelessWidget {
                         ? 'You have ${controller.unreadCount.value} unread notification${controller.unreadCount.value > 1 ? 's' : ''}'
                         : 'All notifications are read',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 14,
                     ),
                   ),
@@ -280,7 +274,7 @@ class NotificationScreen extends StatelessWidget {
             : Border.all(color: const Color(0xFF1976D2), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -298,7 +292,7 @@ class NotificationScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: notification.backgroundColor.withOpacity(0.1),
+                  color: notification.backgroundColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(

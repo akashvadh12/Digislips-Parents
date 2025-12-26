@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen>
                             gradient: LinearGradient(
                               colors: [
                                 AppColors.primary,
-                                AppColors.primary.withOpacity(0.8),
+                                AppColors.primary.withValues(alpha: 0.8),
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen>
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
+                                color: AppColors.primary.withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: Offset(0, 10),
                               ),
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen>
                         //     gradient: LinearGradient(
                         //       colors: [
                         //         AppColors.primary,
-                        //         AppColors.primary.withOpacity(0.8),
+                        //         AppColors.primary.withValues(alpha: 0.8),
                         //       ],
                         //       begin: Alignment.topLeft,
                         //       end: Alignment.bottomRight,
@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen>
                         //     borderRadius: BorderRadius.circular(25),
                         //     boxShadow: [
                         //       BoxShadow(
-                        //         color: AppColors.primary.withOpacity(0.3),
+                        //         color: AppColors.primary.withValues(alpha: 0.3),
                         //         blurRadius: 20,
                         //         offset: Offset(0, 10),
                         //       ),
@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen>
                           shaderCallback: (bounds) => LinearGradient(
                             colors: [
                               AppColors.primary,
-                              AppColors.primary.withOpacity(0.7),
+                              AppColors.primary.withValues(alpha: 0.7),
                             ],
                           ).createShader(bounds),
                           child: Text(
@@ -365,7 +365,7 @@ class _LoginScreenState extends State<LoginScreen>
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: Offset(0, 5),
                       ),
@@ -459,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen>
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: Offset(0, 5),
                       ),
@@ -559,14 +559,14 @@ class _LoginScreenState extends State<LoginScreen>
                 gradient: LinearGradient(
                   colors: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.8),
+                    AppColors.primary.withValues(alpha: 0.8),
                   ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: Offset(0, 8),
                   ),

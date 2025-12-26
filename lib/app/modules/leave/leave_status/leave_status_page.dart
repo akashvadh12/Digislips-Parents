@@ -1,4 +1,3 @@
-// screens/leave_requests_screen.dart
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/leave/leave_status/leave_controller/leave_controller.dart';
@@ -41,7 +40,10 @@ class LeaveRequestsScreen extends StatelessWidget {
                                 Icons.arrow_back,
                                 color: Colors.white,
                               ),
-                              onPressed: () => Get.back(),
+                              onPressed: () => Navigator.popUntil(
+                                context,
+                                (route) => route.isFirst,
+                              ),
                             ),
                             const SizedBox(width: 4),
                             Obx(
@@ -155,6 +157,7 @@ class LeaveRequestsScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(top: 15),
                   child: Container(
+                    clipBehavior: Clip.antiAlias,
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Color(0xFFF8FAFC),
@@ -166,101 +169,100 @@ class LeaveRequestsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Obx(() {
-                              if (leaveController.isLoading.value) {
-                                return const Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                  ),
-                                );
-                              }
-
-                              final filteredRequests =
-                                  leaveController.filteredRequests;
-
-                              if (filteredRequests.isEmpty) {
-                                return Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(24),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.lightGrey,
-                                            borderRadius: BorderRadius.circular(
-                                              50,
-                                            ),
-                                          ),
-                                          child: const Icon(
-                                            Icons.inbox_outlined,
-                                            size: 48,
-                                            color: AppColors.greyColor,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      Text(
-                                        leaveController.selectedFilter.value ==
-                                                'All'
-                                            ? 'No leave applications found'
-                                            : 'No ${leaveController.selectedFilter.value.toLowerCase()} applications',
-                                        style: AppTextStyles.title,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        leaveController.canApproveReject
-                                            ? 'Leave applications will appear here'
-                                            : 'Your leave requests will appear here',
-                                        style: AppTextStyles.body,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-
-                              return RefreshIndicator(
-                                onRefresh: () async {
-                                  await leaveController.refreshLeaveRequests();
-                                },
-                                color: AppColors.primary,
-                                child: ListView.builder(
-                                  itemCount: filteredRequests.length,
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  itemBuilder: (context, index) {
-                                    final request = filteredRequests[index];
-                                    return LeaveRequestCard(
-                                      leaveRequest: request,
-                                      showStudentInfo:
-                                          leaveController.canApproveReject,
-                                      onTap: () => _showLeaveDetailDialog(
-                                        context,
-                                        request,
-                                      ),
-                                      onApprove:
-                                          leaveController.canApproveReject &&
-                                              request.status.toLowerCase() ==
-                                                  'pending'
-                                          ? () => leaveController
-                                                .showApprovalDialog(request)
-                                          : null,
-                                      onReject:
-                                          leaveController.canApproveReject &&
-                                              request.status.toLowerCase() ==
-                                                  'pending'
-                                          ? () => leaveController
-                                                .showApprovalDialog(request)
-                                          : null,
-                                    );
-                                  },
+                          child: Obx(() {
+                            if (leaveController.isLoading.value) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primary,
                                 ),
                               );
-                            }),
-                          ),
+                            }
+
+                            final filteredRequests =
+                                leaveController.filteredRequests;
+
+                            if (filteredRequests.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(24),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.lightGrey,
+                                          borderRadius: BorderRadius.circular(
+                                            50,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.inbox_outlined,
+                                          size: 48,
+                                          color: AppColors.greyColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      leaveController.selectedFilter.value ==
+                                              'All'
+                                          ? 'No leave applications found'
+                                          : 'No ${leaveController.selectedFilter.value.toLowerCase()} applications',
+                                      style: AppTextStyles.title,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      leaveController.canApproveReject
+                                          ? 'Leave applications will appear here'
+                                          : 'Your leave requests will appear here',
+                                      style: AppTextStyles.body,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return RefreshIndicator(
+                              onRefresh: () async {
+                                await leaveController.refreshLeaveRequests();
+                              },
+                              color: AppColors.primary,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                itemCount: filteredRequests.length,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemBuilder: (context, index) {
+                                  final request = filteredRequests[index];
+                                  return LeaveRequestCard(
+                                    leaveRequest: request,
+                                    showStudentInfo:
+                                        leaveController.canApproveReject,
+                                    onTap: () => _showLeaveDetailDialog(
+                                      context,
+                                      request,
+                                    ),
+                                    onApprove:
+                                        leaveController.canApproveReject &&
+                                            request.status.toLowerCase() ==
+                                                'pending'
+                                        ? () => leaveController
+                                              .showApprovalDialog(request)
+                                        : null,
+                                    onReject:
+                                        leaveController.canApproveReject &&
+                                            request.status.toLowerCase() ==
+                                                'pending'
+                                        ? () => leaveController
+                                              .showApprovalDialog(request)
+                                        : null,
+                                  );
+                                },
+                              ),
+                            );
+                          }),
                         ),
                       ],
                     ),
@@ -318,7 +320,7 @@ class LeaveRequestsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -327,7 +329,7 @@ class LeaveRequestsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(icon, size: 16, color: color),
@@ -373,7 +375,7 @@ class LeaveRequestsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _getStatusColor(request.status).withOpacity(0.1),
+                color: _getStatusColor(request.status).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(

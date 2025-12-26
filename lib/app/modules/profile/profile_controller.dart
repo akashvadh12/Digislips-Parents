@@ -309,7 +309,7 @@ class ProfileController extends GetxController {
     Get.snackbar(
       'Change Password',
       'Navigating to change password...',
-      backgroundColor: AppColors.secondary.withOpacity(0.1),
+      backgroundColor: AppColors.secondary.withValues(alpha: 0.1),
       colorText: AppColors.secondary,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
@@ -344,7 +344,7 @@ class ProfileController extends GetxController {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.error, AppColors.error.withOpacity(0.8)],
+                colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)],
               ),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -361,7 +361,7 @@ class ProfileController extends GetxController {
                   Get.snackbar(
                     'Logged Out',
                     'You have been successfully logged out',
-                    backgroundColor: AppColors.error.withOpacity(0.1),
+                    backgroundColor: AppColors.error.withValues(alpha: 0.1),
                     colorText: AppColors.error,
                     snackPosition: SnackPosition.TOP,
                     margin: EdgeInsets.all(16),
@@ -394,7 +394,7 @@ class ProfileController extends GetxController {
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.success.withOpacity(0.1),
+      backgroundColor: AppColors.success.withValues(alpha: 0.1),
       colorText: AppColors.success,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
@@ -408,7 +408,7 @@ class ProfileController extends GetxController {
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.error.withOpacity(0.1),
+      backgroundColor: AppColors.error.withValues(alpha: 0.1),
       colorText: AppColors.error,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),

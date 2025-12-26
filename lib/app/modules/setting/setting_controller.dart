@@ -386,7 +386,7 @@ This policy is effective as of the last updated date and will remain in effect e
             Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: AppColors.primary, size: 20),
@@ -441,7 +441,7 @@ This policy is effective as of the last updated date and will remain in effect e
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.error, AppColors.error.withOpacity(0.8)],
+                colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)],
               ),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -503,7 +503,7 @@ This policy is effective as of the last updated date and will remain in effect e
       title,
       message,
       backgroundColor:
-          AppColors.success?.withOpacity(0.1) ?? Colors.green.withOpacity(0.1),
+          AppColors.success?.withValues(alpha: 0.1) ?? Colors.green.withValues(alpha: 0.1),
       colorText: AppColors.success ?? Colors.green,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
@@ -517,7 +517,7 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.error.withOpacity(0.1),
+      backgroundColor: AppColors.error.withValues(alpha: 0.1),
       colorText: AppColors.error,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
@@ -531,7 +531,7 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.primary.withOpacity(0.1),
+      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
       colorText: AppColors.primary,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),

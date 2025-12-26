@@ -18,8 +18,8 @@ class LogoutPage extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               AppColors.background,
-              AppColors.primary.withOpacity(0.05),
-              AppColors.secondary.withOpacity(0.05),
+              AppColors.primary.withValues(alpha: 0.05),
+              AppColors.secondary.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -68,7 +68,7 @@ class LogoutPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: Offset(0, 4),
                   ),
@@ -107,13 +107,13 @@ class LogoutPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 30,
             offset: Offset(0, 15),
             spreadRadius: 0,
           ),
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.05),
+            color: AppColors.primary.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: Offset(0, 8),
             spreadRadius: -5,
@@ -148,7 +148,7 @@ class LogoutPage extends StatelessWidget {
               gradient: LinearGradient(
                 colors: [
                   AppColors.error,
-                  AppColors.error.withOpacity(0.7),
+                  AppColors.error.withValues(alpha: 0.7),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -156,7 +156,7 @@ class LogoutPage extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.error.withOpacity(0.3),
+                  color: AppColors.error.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: Offset(0, 10),
                   spreadRadius: 0,
@@ -283,7 +283,7 @@ class LogoutPage extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               AppColors.error,
-              AppColors.error.withOpacity(0.8),
+              AppColors.error.withValues(alpha: 0.8),
             ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
@@ -291,7 +291,7 @@ class LogoutPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: AppColors.error.withOpacity(0.4),
+              color: AppColors.error.withValues(alpha: 0.4),
               blurRadius: 15,
               offset: Offset(0, 8),
               spreadRadius: 0,
@@ -335,7 +335,7 @@ class LogoutPage extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),
@@ -389,7 +389,7 @@ class LogoutDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 30,
               offset: Offset(0, 15),
             ),
@@ -403,7 +403,7 @@ class LogoutDialog extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.error, AppColors.error.withOpacity(0.7)],
+                  colors: [AppColors.error, AppColors.error.withValues(alpha: 0.7)],
                 ),
                 shape: BoxShape.circle,
               ),
@@ -453,7 +453,7 @@ class LogoutDialog extends StatelessWidget {
                       padding: EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [AppColors.error, AppColors.error.withOpacity(0.8)],
+                          colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
