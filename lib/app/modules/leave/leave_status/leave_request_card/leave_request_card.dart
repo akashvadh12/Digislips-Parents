@@ -56,18 +56,17 @@ class LeaveRequestCard extends StatelessWidget {
                     Expanded(
                       child: Row(
                         children: [
+                          // User Profile Icon
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: _getLeaveTypeColor().withValues(
-                                alpha: 0.1,
-                              ),
+                              color: AppColors.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              _getLeaveTypeIcon(),
+                              Icons.person,
                               size: 20,
-                              color: _getLeaveTypeColor(),
+                              color: AppColors.primary,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -75,27 +74,41 @@ class LeaveRequestCard extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // User Name
                                 Text(
-                                  leaveRequest.leaveType.isEmpty
-                                      ? 'Leave Request'
-                                      : leaveRequest.leaveType,
+                                  leaveRequest.fullName != null &&
+                                          leaveRequest.fullName!.isNotEmpty
+                                      ? leaveRequest.fullName!
+                                      : 'Unknown User',
                                   style: AppTextStyles.title.copyWith(
                                     fontSize: 16,
                                   ),
                                 ),
-                                if (showStudentInfo) ...[
-                                  const SizedBox(height: 4),
-                                  // Show student name and roll number if available
-                                  if (leaveRequest.fullName != null &&
-                                      leaveRequest.fullName!.isNotEmpty)
+                                const SizedBox(height: 4),
+                                // Leave Type with icon
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _getLeaveTypeIcon(),
+                                      size: 14,
+                                      color: _getLeaveTypeColor(),
+                                    ),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      leaveRequest.fullName!,
+                                      leaveRequest.leaveType.isEmpty
+                                      
+                                          ? 'Leave Request'
+                                          : leaveRequest.leaveType,
                                       style: AppTextStyles.bodyMedium.copyWith(
                                         fontSize: 14,
+                                        color: _getLeaveTypeColor(),
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.blackColor,
                                       ),
                                     ),
+                                  ],
+                                ),
+                                if (showStudentInfo) ...[
+                                  const SizedBox(height: 4),
                                   // Show roll number and department
                                   if (leaveRequest.rollNumber != null &&
                                       leaveRequest.rollNumber!.isNotEmpty)
@@ -292,7 +305,7 @@ class LeaveRequestCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Submitted on ${dateFormat.format(leaveRequest.submittedAt)}${leaveRequest.submittedBy.isNotEmpty ? ' by ${leaveRequest.submittedBy}' : ''}',
+                        'Submitted on ${dateFormat.format(leaveRequest.submittedAt)}${leaveRequest.submittedBy.isNotEmpty ? ' by ${leaveRequest.fullName.toString()}' : ''}',
                         style: AppTextStyles.caption,
                       ),
                     ),
@@ -394,48 +407,8 @@ class LeaveRequestCard extends StatelessWidget {
 
                 // Action buttons for pending requests (admin/teacher view)
                 if (leaveRequest.status.toLowerCase() == 'pending' &&
-                    (onApprove != null || onReject != null)) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      if (onReject != null) ...[
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: onReject,
-                            icon: const Icon(Icons.close, size: 16),
-                            label: const Text('Reject'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: AppColors.error),
-                              foregroundColor: AppColors.error,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      if (onApprove != null) ...[
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: onApprove,
-                            icon: const Icon(Icons.check, size: 16),
-                            label: const Text('Approve'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                    (onApprove != null || onReject != null))
+                  ...[],
               ],
             ),
           ),

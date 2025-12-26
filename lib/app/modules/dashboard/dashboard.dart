@@ -3,16 +3,22 @@ import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/contect/contect.dart';
 import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
-
+import 'package:digislips/app/modules/notification/notification_controller.dart';
 import 'package:digislips/app/modules/notification/notification_screen.dart';
+import 'package:digislips/app/shared/widgets/bottomnavigation/navigation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
-    Get.put(HomeController());
-
+    // HomeController homeController = Get.put(HomeController());
+    final BottomNavController bottomNavController = Get.put(
+      BottomNavController(),
+    );
+    final NotificationController notificationController = Get.put(
+      NotificationController(),
+    );
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: SafeArea(
@@ -49,7 +55,7 @@ class HomeView extends GetView<HomeController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Good Morning! 👋',
+                            controller.greetingWithEmoji,
                             style: AppTextStyles.welcomeTitle.copyWith(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -60,7 +66,8 @@ class HomeView extends GetView<HomeController> {
                             () => Text(
                               controller.isLoading.value
                                   ? 'Loading...'
-                                  : controller.studentName,
+                                  : controller.currentUserName,
+
                               style: AppTextStyles.welcomeTitle.copyWith(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -85,15 +92,40 @@ class HomeView extends GetView<HomeController> {
                                 size: 24,
                               ),
                               onPressed: () {
+                                bottomNavController.changeBottomNavIndex(1);
                                 // Get.to(NotificationScreen());
                               },
                             ),
                           ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(width: 8, height: 8),
-                          ),
+                          // Notification badge
+                          Obx(() {
+                            if (notificationController.hasUnreadNotifications) {
+                              return Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${notificationController.unreadCount.value}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return const SizedBox.shrink(); // Hide if no unread notifications
+                            }
+                          }),
                         ],
                       ),
                     ],
@@ -124,14 +156,14 @@ class HomeView extends GetView<HomeController> {
                           ),
                         )
                       : RefreshIndicator(
-                          onRefresh: controller.refreshStudentData,
+                          onRefresh: controller.refreshLeaveApplications,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(14),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Enhanced Profile Card with glassmorphism effect
+                                // ✅ ORIGINAL Profile Card (unchanged)
                                 Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
@@ -158,7 +190,6 @@ class HomeView extends GetView<HomeController> {
                                   ),
                                   child: Row(
                                     children: [
-                                      // Enhanced Profile Avatar with border and shadow
                                       Container(
                                         width: 60,
                                         height: 60,
@@ -187,23 +218,20 @@ class HomeView extends GetView<HomeController> {
                                           margin: const EdgeInsets.all(3),
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            image: DecorationImage(
-                                              image:
-                                                  controller.profileImageUrl !=
-                                                          null &&
-                                                      controller
-                                                          .profileImageUrl!
-                                                          .isNotEmpty
-                                                  ? NetworkImage(
+                                            image:
+                                                controller.profileImageUrl !=
+                                                        null &&
+                                                    controller
+                                                        .profileImageUrl!
+                                                        .isNotEmpty
+                                                ? DecorationImage(
+                                                    image: NetworkImage(
                                                       controller
                                                           .profileImageUrl!,
-                                                    )
-                                                  : const NetworkImage(''),
-                                              fit: BoxFit.cover,
-                                              onError: (exception, stackTrace) {
-                                                // Handle image load error
-                                              },
-                                            ),
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
                                           ),
                                           child:
                                               controller.profileImageUrl ==
@@ -221,20 +249,24 @@ class HomeView extends GetView<HomeController> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      // Enhanced Profile Info
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              controller.studentName,
+                                              controller.currentUserName,
                                               style: AppTextStyles.profileName,
-                                              // .copyWith(
-                                              //   fontSize: 15,
-                                              //   fontWeight: FontWeight.w600,
-                                              // ),
                                             ),
+                                            if (controller.isParent.value)
+                                              Text(
+                                                controller.studentName,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
                                             const SizedBox(height: 2),
                                             Text(
                                               controller.studentDepartment,
@@ -245,28 +277,9 @@ class HomeView extends GetView<HomeController> {
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                             ),
-                                            Text(
-                                              'Roll No: ${controller.studentId}',
-                                              style: AppTextStyles
-                                                  .profileSubtitle
-                                                  .copyWith(fontSize: 12),
-                                            ),
-                                            if (controller
-                                                .studentSemester
-                                                .isNotEmpty)
-                                              Text(
-                                                controller.studentSemester,
-                                                style: AppTextStyles
-                                                    .profileSubtitle
-                                                    .copyWith(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                              ),
                                           ],
                                         ),
                                       ),
-                                      // Status indicator
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -317,64 +330,12 @@ class HomeView extends GetView<HomeController> {
 
                                 const SizedBox(height: 32),
 
-                                // Enhanced Action Cards Grid
-                                GridView.count(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                  childAspectRatio: 1,
-                                  children: [
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.assignment,
-                                      title: 'Leave Request',
-                                      subtitle: 'View Leave Requests',
-                                      gradient: [
-                                        Colors.blue[400]!,
-                                        Colors.blue[600]!,
-                                      ],
-                                      onTap: controller.LeaveRequests,
-                                    ),
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.phone,
-                                      title: 'Phone',
-                                      subtitle: 'Contact Parent',
-                                      gradient: [
-                                        Colors.green[400]!,
-                                        Colors.green[600]!,
-                                      ],
-
-                                      onTap: () {
-                                        Get.to(ContactScreen());
-                                      },
-                                    ),
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.person_outline_rounded,
-                                      title: 'My Profile',
-                                      subtitle: 'View & edit profile',
-                                      gradient: [
-                                        Colors.purple[400]!,
-                                        Colors.purple[600]!,
-                                      ],
-                                      onTap: controller.onMyProfile,
-                                    ),
-                                    _buildEnhancedActionCard(
-                                      icon: Icons.logout_rounded,
-                                      title: 'Logout',
-                                      subtitle: 'Sign out safely',
-                                      gradient: [
-                                        Colors.red[400]!,
-                                        Colors.red[600]!,
-                                      ],
-                                      onTap: controller.onLogout,
-                                    ),
-                                  ],
-                                ),
+                                // Action Cards Grid
+                                Obx(() => _buildActionCardsGrid()),
 
                                 const SizedBox(height: 32),
 
-                                // Enhanced Recent Leave Applications Section
+                                // Recent Leave Applications Section
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -401,65 +362,98 @@ class HomeView extends GetView<HomeController> {
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Enhanced Leave Applications List
-                                controller.recentLeaveApplications.isEmpty
-                                    ? Container(
-                                        padding: const EdgeInsets.all(40),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[50],
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey[200]!,
-                                            width: 1,
-                                          ),
+                                // Leave Application List with Loading State
+                                Obx(() {
+                                  if (controller.isLoadingLeaves.value) {
+                                    return Container(
+                                      padding: const EdgeInsets.all(40),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[50],
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: Colors.grey[200]!,
+                                          width: 1,
                                         ),
+                                      ),
+                                      child: const Center(
                                         child: Column(
                                           children: [
-                                            Icon(
-                                              Icons.assignment_outlined,
-                                              size: 48,
-                                              color: Colors.grey[400],
-                                            ),
-                                            const SizedBox(height: 16),
+                                            CircularProgressIndicator(),
+                                            SizedBox(height: 16),
                                             Text(
-                                              'No recent applications',
+                                              'Loading leave applications...',
                                               style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              'Your leave applications will appear here',
-                                              style: TextStyle(
-                                                color: Colors.grey[500],
                                                 fontSize: 14,
+                                                color: Colors.grey,
                                               ),
-                                              textAlign: TextAlign.center,
                                             ),
                                           ],
                                         ),
-                                      )
-                                    : ListView.separated(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemCount: controller
-                                            .recentLeaveApplications
-                                            .length,
-                                        separatorBuilder: (context, index) =>
-                                            const SizedBox(height: 12),
-                                        itemBuilder: (context, index) {
-                                          final leave = controller
-                                              .recentLeaveApplications[index];
-                                          return _buildEnhancedLeaveApplicationCard(
-                                            leave,
-                                          );
-                                        },
                                       ),
+                                    );
+                                  }
+
+                                  if (controller
+                                      .recentLeaveApplications
+                                      .isEmpty) {
+                                    return Container(
+                                      padding: const EdgeInsets.all(40),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[50],
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: Colors.grey[200]!,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.assignment_outlined,
+                                            size: 48,
+                                            color: Colors.grey[400],
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'No recent applications',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Student leave applications will appear here',
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                              fontSize: 14,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+
+                                  return ListView.separated(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: controller
+                                        .recentLeaveApplications
+                                        .length,
+                                    separatorBuilder: (context, index) =>
+                                        const SizedBox(height: 12),
+                                    itemBuilder: (context, index) {
+                                      final leave = controller
+                                          .recentLeaveApplications[index];
+                                      return _buildEnhancedLeaveApplicationCard(
+                                        leave,
+                                      );
+                                    },
+                                  );
+                                }),
 
                                 const SizedBox(height: 40),
                               ],
@@ -475,6 +469,75 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  // Build Action Cards Grid with Role-based Visibility
+  Widget _buildActionCardsGrid() {
+    List<Widget> actionCards = [];
+
+    // Always show Leave Request card
+    actionCards.add(
+      _buildEnhancedActionCard(
+        icon: Icons.assignment,
+        title: 'Leave Request',
+        subtitle: 'View Leave Requests',
+        gradient: [Colors.blue[400]!, Colors.blue[600]!],
+        onTap: controller.LeaveRequests,
+      ),
+    );
+
+    // Show Phone card only for teachers
+    if (controller.isCurrentUserTeacher) {
+      actionCards.add(
+        _buildEnhancedActionCard(
+          icon: Icons.phone,
+          title: 'Phone',
+          subtitle: 'Contact Parent',
+          gradient: [Colors.green[400]!, Colors.green[600]!],
+          onTap: () {
+            Get.to(ContactScreen());
+          },
+        ),
+      );
+    }
+
+    // Always show My Profile card
+    actionCards.add(
+      _buildEnhancedActionCard(
+        icon: Icons.person_outline_rounded,
+        title: 'My Profile',
+        subtitle: 'View & edit profile',
+        gradient: [Colors.purple[400]!, Colors.purple[600]!],
+        onTap: controller.onMyProfile,
+      ),
+    );
+
+    // Show Logout card only for teachers
+    if (controller.isCurrentUserTeacher) {
+      actionCards.add(
+        _buildEnhancedActionCard(
+          icon: Icons.logout_rounded,
+          title: 'Logout',
+          subtitle: 'Sign out safely',
+          gradient: [Colors.red[400]!, Colors.red[600]!],
+          onTap: controller.onLogout,
+        ),
+      );
+    }
+
+    // Determine grid layout based on number of cards
+    int crossAxisCount = actionCards.length == 2 ? 2 : 2;
+    double childAspectRatio = actionCards.length == 2 ? 1.2 : 1;
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: crossAxisCount,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: childAspectRatio,
+      children: actionCards,
+    );
+  }
+
   Widget _buildEnhancedActionCard({
     required IconData icon,
     required String title,
@@ -485,7 +548,6 @@ class HomeView extends GetView<HomeController> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -551,6 +613,12 @@ class HomeView extends GetView<HomeController> {
         statusColor = Colors.orange;
         statusIcon = Icons.schedule_outlined;
         break;
+      case 'partially approved':
+        statusColor = AppColors.greyColor;
+
+        statusIcon = Icons.help_outline;
+
+        break;
       case 'rejected':
         statusColor = Colors.red;
         statusIcon = Icons.cancel_outlined;
@@ -574,67 +642,226 @@ class HomeView extends GetView<HomeController> {
         ],
         border: Border.all(color: statusColor.withOpacity(0.1), width: 1),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.calendar_today_outlined,
-              color: statusColor,
-              size: 20,
-            ),
+          // Header Row with Leave Type and Status
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.calendar_today_outlined,
+                  color: statusColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      leave.type,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      leave.date,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, size: 16, color: statusColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      leave.status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
+
+          const SizedBox(height: 16),
+
+          // Student Information Section
+          if (leave.studentName != null ||
+              leave.rollNumber != null ||
+              leave.department != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Student Name
+                  if (leave.studentName != null &&
+                      leave.studentName!.isNotEmpty)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            leave.studentName!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  // Roll Number and Department
+                  if ((leave.rollNumber != null &&
+                          leave.rollNumber!.isNotEmpty) ||
+                      (leave.department != null &&
+                          leave.department!.isNotEmpty))
+                    const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+                      // Roll Number
+                      if (leave.rollNumber != null &&
+                          leave.rollNumber!.isNotEmpty)
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.badge_outlined,
+                                size: 16,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Roll: ${leave.rollNumber}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Department
+                      if (leave.department != null &&
+                          leave.department!.isNotEmpty)
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.school_outlined,
+                                size: 16,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  leave.department!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+          // Reason Section
+          if (leave.reason != null && leave.reason!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  leave.type,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                Icon(
+                  Icons.description_outlined,
+                  size: 16,
+                  color: Colors.grey[600],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  leave.date,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(statusIcon, size: 16, color: statusColor),
-                const SizedBox(width: 6),
-                Text(
-                  leave.status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reason:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        leave.reason!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[800],
+                          height: 1.3,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
+          ],
         ],
       ),
     );

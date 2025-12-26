@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/auth/models/user_model.dart';
+import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:digislips/app/modules/splash_screen/splash_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,8 +14,14 @@ class SettingsController extends GetxController {
   // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Observable student data
-  var student = Rxn<Student>();
+  // User data observables
+  var currentUser =
+      Rxn<Map<String, dynamic>>(); // Changed to Map for better handling
+  var userRole = ''.obs;
+  var userUid = ''.obs;
+  var userEmail = ''.obs;
+  var isParent = false.obs;
+  var isTeacher = false.obs;
 
   // Loading states
   var isLoading = false.obs;
@@ -25,53 +33,219 @@ class SettingsController extends GetxController {
   var darkModeEnabled = false.obs;
   var biometricEnabled = false.obs;
 
-  // Getters for easy access to student data
-  String get fullName => student.value?.fullName ?? 'Loading...';
-  String get role => 'Student';
-  String get department => student.value?.department ?? 'Loading...';
-  String get studentId => student.value?.rollNumber ?? 'Loading...';
-  String get email => student.value?.email ?? 'Loading...';
-  String get phone => student.value?.phone ?? 'Loading...';
-  String get parentPhone => student.value?.parentPhone ?? 'Not provided';
-  String get parentEmail => student.value?.parentEmail ?? 'Not provided';
-  String get semester => student.value?.semester ?? '1st Semester';
+  // Getters for easy access to user data
+  String get fullName => _getFullName();
+  String get role => userRole.value.capitalize ?? 'User';
+  String get department => _getDepartment();
+  String get phone => _getPhone();
+  String get email =>
+      userEmail.value.isNotEmpty ? userEmail.value : 'Loading...';
+  String? get profileImageUrl => _getProfileImageUrl();
+
+  // Role-specific getters
+  String get subject => _getSubject(); // For teachers
+  String get employeeId => _getEmployeeId(); // For teachers
+  String get childName => _getChildName(); // For parents
+  String get childClass => _getChildClass(); // For parents
+
+  // Legacy getters for backward compatibility (if needed)
+  String get studentId => _getStudentId();
+  String get parentPhone => _getParentPhone();
+  String get parentEmail => _getParentEmail();
+  String get semester => _getSemester();
 
   @override
   void onInit() {
     super.onInit();
-    fetchStudentData();
+    getUserDetailsFromPrefs();
     _loadSettings();
   }
 
-  // Fetch student data from Firestore using UID
-  Future<void> fetchStudentData() async {
+  // Get user details from shared preferences
+  Future<void> getUserDetailsFromPrefs() async {
     try {
       isLoading.value = true;
-      hasError.value = false;
-
       final prefs = await SharedPreferences.getInstance();
-      final uid = prefs.getString('uid');
+
+      // Get stored values
+      String? uid = prefs.getString('uid');
+      String? role = prefs.getString('userRole');
+      bool? parentFlag = prefs.getBool('isParent');
+      bool? teacherFlag = prefs.getBool('isTeacher');
+      String? emailPref = prefs.getString('Email');
+
+      print("Email is 😁😁👌 $emailPref");
+      print('UID😁😁😁👍: $uid');
+      print('Role😊👌👌: $role');
+      print('Is Parent😁: $parentFlag');
+      print('Is Teacher😁: $teacherFlag');
 
       if (uid == null || uid.isEmpty) {
         throw Exception('No user ID found. Please login again.');
       }
 
-      // Get profile data from Firestore
-      final doc = await _firestore.collection('students').doc(uid).get();
+      // Set observable values
+      userUid.value = uid;
+      userRole.value = role ?? '';
+      userEmail.value = emailPref ?? '';
+      isParent.value = parentFlag ?? false;
+      isTeacher.value = teacherFlag ?? false;
 
-      if (doc.exists && doc.data() != null) {
-        student.value = Student.fromMap(doc.data()!);
+      // Use the appropriate fetch method based on role
+      if (isTeacher.value) {
+        await fetchCurrentTeacherData();
       } else {
-        throw Exception('Student data not found');
+        await fetchCurrentUserData(); // This will handle parents and other roles
       }
     } catch (e) {
       hasError.value = true;
       errorMessage.value = e.toString();
-      print('Error fetching student data: $e');
-      _showErrorSnackbar(
-        'Error',
-        'Failed to load profile data: ${e.toString()}',
-      );
+      print('Error getting user details from prefs: $e');
+      _showErrorSnackbar('Error', 'Failed to load user data: ${e.toString()}');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Specific method to fetch teacher data
+  Future<void> fetchCurrentTeacherData() async {
+    try {
+      isLoading.value = true;
+
+      if (userUid.value.isEmpty) {
+        _showErrorSnackbar('Error', 'User not found. Please login again.');
+        return;
+      }
+
+      // Fetch current teacher data from Firestore using UID
+      final docSnapshot = await _firestore
+          .collection('teachers')
+          .doc(userUid.value)
+          .get();
+
+      if (docSnapshot.exists) {
+        Map<String, dynamic> userData = Map<String, dynamic>.from(
+          docSnapshot.data()!,
+        );
+
+        // Add additional info
+        userData['role'] = 'teacher';
+        userData['uid'] = userUid.value;
+        userData['email'] = userEmail.value;
+
+        // Get profile image URL from Realtime Database
+        try {
+          final DatabaseReference dbRef = FirebaseDatabase.instance.ref().child(
+            'profile_images/${userUid.value}',
+          );
+          final DataSnapshot snapshot = await dbRef.get();
+
+          if (snapshot.exists && snapshot.value != null) {
+            userData['profileImageUrl'] = snapshot.value.toString();
+            print('Profile image URL found: ${userData['profileImageUrl']}');
+          }
+        } catch (e) {
+          print('Error fetching profile image: $e');
+        }
+
+        currentUser.value = userData;
+        print('✅ Current teacher loaded: ${userData['fullName']}');
+      } else {
+        // If not found in teachers, try students collection
+        final studentSnapshot = await _firestore
+            .collection('students')
+            .doc(userUid.value)
+            .get();
+
+        if (studentSnapshot.exists) {
+          Map<String, dynamic> userData = Map<String, dynamic>.from(
+            studentSnapshot.data()!,
+          );
+
+          userData['role'] = 'student';
+          userData['uid'] = userUid.value;
+          userData['email'] = userEmail.value;
+
+          currentUser.value = userData;
+          print('✅ Current user loaded from students: ${userData['fullName']}');
+        } else {
+          _showErrorSnackbar('Error', 'User profile not found.');
+        }
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error', 'Failed to load profile: $e');
+      print('❌ Error fetching teacher data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Generic method to fetch current user data
+  Future<void> fetchCurrentUserData() async {
+    try {
+      isLoading.value = true;
+
+      if (userUid.value.isEmpty) {
+        _showErrorSnackbar('Error', 'User not found. Please login again.');
+        return;
+      }
+
+      // Try multiple collections to find user
+      DocumentSnapshot? userDoc;
+
+      // Try teachers first
+      userDoc = await _firestore
+          .collection('teachers')
+          .doc(userUid.value)
+          .get();
+
+      if (!userDoc.exists) {
+        // Try students
+        userDoc = await _firestore
+            .collection('students')
+            .doc(userUid.value)
+            .get();
+      }
+
+      if (!userDoc.exists) {
+        // Try parents
+        userDoc = await _firestore
+            .collection('parents')
+            .doc(userUid.value)
+            .get();
+      }
+
+      if (userDoc.exists) {
+        Map<String, dynamic> userData = Map<String, dynamic>.from(
+          userDoc.data() as Map<String, dynamic>,
+        );
+
+        userData['uid'] = userUid.value;
+        userData['email'] = userEmail.value;
+
+        // Get profile image URL from Realtime Database
+        try {
+          final DatabaseReference dbRef = FirebaseDatabase.instance.ref().child(
+            'profile_images/${userUid.value}',
+          );
+          final DataSnapshot snapshot = await dbRef.get();
+
+          if (snapshot.exists && snapshot.value != null) {
+            userData['profileImageUrl'] = snapshot.value.toString();
+            print('Profile image URL found: ${userData['profileImageUrl']}');
+          }
+        } catch (e) {
+          print('Error fetching profile image: $e');
+        }
+
+        currentUser.value = userData;
+        print('✅ Current user loaded: ${userData['fullName']}');
+      } else {
+        _showErrorSnackbar('Error', 'User profile not found.');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Error', 'Failed to load profile: $e');
+      print('❌ Error fetching user data: $e');
     } finally {
       isLoading.value = false;
     }
@@ -463,25 +637,38 @@ This policy is effective as of the last updated date and will remain in effect e
   // Perform logout operation
   Future<void> _performLogout() async {
     try {
-      Get.back(); // Close dialog
+      Get.back(); // Close any open dialog
       isLoading.value = true;
 
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
-
-      // Clear stored data
+      await FirebaseAuth.instance.signOut();
+      final HomeController homeController = Get.put(HomeController());
+      // Clear SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('uid');
+      await prefs.clear();
+      homeController.resetUserData();
+      await Get.delete<HomeController>(force: true);
+      // Clear all stored SharedPreferences
 
-      // Clear student data
-      student.value = null;
+      // (Optional) Recreate default values only if your app relies on them immediately
+      await prefs.setBool('isLoggedIn', false);
 
+      // Clear in-memory data (GetX observables)
+      currentUser.value = null;
+      userRole.value = '';
+      userUid.value = '';
+      userEmail.value = '';
+      isParent.value = false;
+      isTeacher.value = false;
+
+      // Show success snackbar
       _showSuccessSnackbar(
         'Logged Out',
         'You have been successfully logged out',
       );
 
-      // Navigate to splash screen
+      // Navigate to splash/login screen
       await Future.delayed(Duration(milliseconds: 500));
       Get.offAll(() => SplashScreen(), transition: Transition.fadeIn);
     } catch (e) {
@@ -492,9 +679,77 @@ This policy is effective as of the last updated date and will remain in effect e
     }
   }
 
-  // Refresh profile data
-  Future<void> refreshProfile() async {
-    await fetchStudentData();
+  // Private helper methods for getters
+  String _getFullName() {
+    if (currentUser.value == null) return 'Loading...';
+    return currentUser.value!['fullName']?.toString() ?? 'No Name';
+  }
+
+  String _getDepartment() {
+    if (currentUser.value == null) return 'Loading...';
+
+    if (isTeacher.value) {
+      return currentUser.value!['department']?.toString() ?? 'No Department';
+    } else if (isParent.value) {
+      // For parents, show child's department/class info
+      return currentUser.value!['childClass']?.toString() ?? 'No Class Info';
+    } else {
+      // For students
+      return currentUser.value!['department']?.toString() ?? 'No Department';
+    }
+  }
+
+  String _getPhone() {
+    if (currentUser.value == null) return 'Loading...';
+    return currentUser.value!['phone']?.toString() ?? 'No Phone';
+  }
+
+  String? _getProfileImageUrl() {
+    if (currentUser.value == null) return null;
+    return currentUser.value!['profileImageUrl']?.toString();
+  }
+
+  String _getSubject() {
+    if (currentUser.value == null || !isTeacher.value) return 'N/A';
+    return currentUser.value!['subject']?.toString() ?? 'No Subject';
+  }
+
+  String _getEmployeeId() {
+    if (currentUser.value == null || !isTeacher.value) return 'N/A';
+    return currentUser.value!['employeeId']?.toString() ?? 'No Employee ID';
+  }
+
+  String _getChildName() {
+    if (currentUser.value == null || !isParent.value) return 'N/A';
+    return currentUser.value!['childName']?.toString() ?? 'No Child Name';
+  }
+
+  String _getChildClass() {
+    if (currentUser.value == null || !isParent.value) return 'N/A';
+    return currentUser.value!['childClass']?.toString() ?? 'No Class';
+  }
+
+  // Legacy getters for backward compatibility
+  String _getStudentId() {
+    if (currentUser.value == null) return 'Loading...';
+    return currentUser.value!['rollNumber']?.toString() ??
+        currentUser.value!['studentId']?.toString() ??
+        'No Student ID';
+  }
+
+  String _getParentPhone() {
+    if (currentUser.value == null) return 'Not provided';
+    return currentUser.value!['parentPhone']?.toString() ?? 'Not provided';
+  }
+
+  String _getParentEmail() {
+    if (currentUser.value == null) return 'Not provided';
+    return currentUser.value!['parentEmail']?.toString() ?? 'Not provided';
+  }
+
+  String _getSemester() {
+    if (currentUser.value == null) return '1st Semester';
+    return currentUser.value!['semester']?.toString() ?? '1st Semester';
   }
 
   // Helper methods for snackbars
@@ -502,9 +757,8 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor:
-          AppColors.success?.withOpacity(0.1) ?? Colors.green.withOpacity(0.1),
-      colorText: AppColors.success ?? Colors.green,
+      backgroundColor: AppColors.success ?? Colors.green,
+      colorText: AppColors.background ?? Colors.white,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
       borderRadius: 12,
@@ -517,8 +771,8 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.error.withOpacity(0.1),
-      colorText: AppColors.error,
+      backgroundColor: AppColors.error,
+      colorText: AppColors.background,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
       borderRadius: 12,
@@ -531,8 +785,8 @@ This policy is effective as of the last updated date and will remain in effect e
     Get.snackbar(
       title,
       message,
-      backgroundColor: AppColors.primary.withOpacity(0.1),
-      colorText: AppColors.primary,
+      backgroundColor: AppColors.error,
+      colorText: AppColors.background,
       snackPosition: SnackPosition.TOP,
       margin: EdgeInsets.all(16),
       borderRadius: 12,

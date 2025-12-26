@@ -80,6 +80,7 @@ class Student {
     return Student(
       uid: this.uid,
       fullName: fullName ?? this.fullName,
+   
       email: this.email, // Email usually shouldn't be editable
       phone: phone ?? this.phone,
       parentEmail: parentEmail ?? this.parentEmail,

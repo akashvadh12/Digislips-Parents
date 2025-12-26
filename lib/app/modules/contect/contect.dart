@@ -131,14 +131,14 @@ class ContactScreen extends StatelessWidget {
       child: Row(
         children: [
           // Department Filter
-          Obx(
-            () => _buildFilterChip(
-              'Department',
-              controller.selectedDepartment.value,
-              controller.departments,
-              controller.setDepartmentFilter,
-            ),
-          ),
+          // Obx(
+          //   () => _buildFilterChip(
+          //     'Department',
+          //     controller.selectedDepartment.value,
+          //     controller.departments,
+          //     controller.setDepartmentFilter,
+          //   ),
+          // ),
           const SizedBox(width: 12),
 
           // Semester Filter
@@ -531,30 +531,30 @@ class ContactScreen extends StatelessWidget {
                         child: Icon(
                           Icons.phone,
                           color: AppColors.success,
-                          size: 20,
+                          size: 30,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  // const SizedBox(height: 8),
 
                   // SMS Button
-                  Material(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      onTap: () => controller.sendSMS(contact['phone']),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: Icon(
-                          Icons.sms,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Material(
+                  //   color: AppColors.primary.withOpacity(0.1),
+                  //   borderRadius: BorderRadius.circular(12),
+                  //   child: InkWell(
+                  //     onTap: () => controller.sendSMS(contact['phone']),
+                  //     borderRadius: BorderRadius.circular(12),
+                  //     child: Container(
+                  //       padding: const EdgeInsets.all(12),
+                  //       child: Icon(
+                  //         Icons.sms,
+                  //         color: AppColors.primary,
+                  //         size: 20,
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ],

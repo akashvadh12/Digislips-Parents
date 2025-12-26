@@ -3,8 +3,10 @@ import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/logout/logout_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LogoutPage extends StatelessWidget {
+class 
+LogoutPage extends StatelessWidget {
   final LogoutController controller = Get.put(LogoutController());
 
   @override
@@ -146,10 +148,7 @@ class LogoutPage extends StatelessWidget {
             height: 100,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  AppColors.error,
-                  AppColors.error.withOpacity(0.7),
-                ],
+                colors: [AppColors.error, AppColors.error.withOpacity(0.7)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -163,11 +162,7 @@ class LogoutPage extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              Icons.logout_rounded,
-              color: Colors.white,
-              size: 45,
-            ),
+            child: Icon(Icons.logout_rounded, color: Colors.white, size: 45),
           ),
         );
       },
@@ -215,7 +210,7 @@ class LogoutPage extends StatelessWidget {
   Widget _buildLogoutProgress() {
     return Obx(() {
       if (!controller.isLoggingOut.value) return SizedBox.shrink();
-      
+
       return Column(
         children: [
           SizedBox(height: 20),
@@ -262,7 +257,7 @@ class LogoutPage extends StatelessWidget {
   Widget _buildActionButtons() {
     return Obx(() {
       if (controller.isLoggingOut.value) return SizedBox.shrink();
-      
+
       return Column(
         children: [
           _buildPrimaryButton(),
@@ -275,16 +270,18 @@ class LogoutPage extends StatelessWidget {
 
   Widget _buildPrimaryButton() {
     return GestureDetector(
-      onTap: controller.confirmLogout,
+      onTap: () async {
+        // Ensure SharedPreferences is cleared on logout
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+        controller.confirmLogout();
+      },
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppColors.error,
-              AppColors.error.withOpacity(0.8),
-            ],
+            colors: [AppColors.error, AppColors.error.withOpacity(0.8)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -301,11 +298,7 @@ class LogoutPage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.logout_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
+            Icon(Icons.logout_rounded, color: Colors.white, size: 22),
             SizedBox(width: 12),
             Text(
               'Yes, Logout',
@@ -329,10 +322,7 @@ class LogoutPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.5,
-          ),
+          border: Border.all(color: AppColors.borderColor, width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -344,11 +334,7 @@ class LogoutPage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.close_rounded,
-              color: AppColors.greyColor,
-              size: 22,
-            ),
+            Icon(Icons.close_rounded, color: AppColors.greyColor, size: 22),
             SizedBox(width: 12),
             Text(
               'Cancel',
@@ -407,11 +393,7 @@ class LogoutDialog extends StatelessWidget {
                 ),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: Colors.white,
-                size: 40,
-              ),
+              child: Icon(Icons.logout_rounded, color: Colors.white, size: 40),
             ),
             SizedBox(height: 24),
             Text(
@@ -453,7 +435,10 @@ class LogoutDialog extends StatelessWidget {
                       padding: EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [AppColors.error, AppColors.error.withOpacity(0.8)],
+                          colors: [
+                            AppColors.error,
+                            AppColors.error.withOpacity(0.8),
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),

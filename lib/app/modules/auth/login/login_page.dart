@@ -139,34 +139,6 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ),
                         ),
-
-                        // child: Container(
-                        //   width: 100,
-                        //   height: 100,
-                        //   decoration: BoxDecoration(
-                        //     gradient: LinearGradient(
-                        //       colors: [
-                        //         AppColors.primary,
-                        //         AppColors.primary.withOpacity(0.8),
-                        //       ],
-                        //       begin: Alignment.topLeft,
-                        //       end: Alignment.bottomRight,
-                        //     ),
-                        //     borderRadius: BorderRadius.circular(25),
-                        //     boxShadow: [
-                        //       BoxShadow(
-                        //         color: AppColors.primary.withOpacity(0.3),
-                        //         blurRadius: 20,
-                        //         offset: Offset(0, 10),
-                        //       ),
-                        //     ],
-                        //   ),
-                        //   child: Icon(
-                        //     Icons.school_outlined,
-                        //     color: Colors.white,
-                        //     size: 50,
-                        //   ),
-                        // ),
                       );
                     },
                   ),
@@ -204,13 +176,18 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
 
-                  SizedBox(height: 50),
+                  SizedBox(height: 40),
 
-                  // Animated Form Fields
+                  // Role Selection Section
                   SlideTransition(
                     position: _offsetAnimation,
                     child: Column(
                       children: [
+                        // Role Selection Dropdown
+                        _buildRoleDropdown(),
+
+                        SizedBox(height: 30),
+
                         // Email Field with Animation
                         _buildAnimatedInputField(
                           label: 'Email Address',
@@ -265,49 +242,68 @@ class _LoginScreenState extends State<LoginScreen>
                         // Animated Login Button
                         _buildAnimatedLoginButton(),
 
-                        SizedBox(height: 32),
+                        SizedBox(height: 24),
 
-                        // Sign Up Link with Animation
-                        // AnimatedBuilder(
-                        //   animation: _slideAnimation,
-                        //   builder: (context, child) {
-                        //     return Transform.translate(
-                        //       offset: Offset(
-                        //         0,
-                        //         30 * (1 - _slideAnimation.value),
-                        //       ),
-                        //       child: Opacity(
-                        //         opacity: _slideAnimation.value.clamp(0.0, 1.0),
-                        //         child: Row(
-                        //           mainAxisAlignment: MainAxisAlignment.center,
-                        //           children: [
-                        //             Text(
-                        //               "Don't have an account? ",
-                        //               style: TextStyle(
-                        //                 fontSize: 14,
-                        //                 color: Colors.grey[600],
-                        //               ),
-                        //             ),
-                        //             GestureDetector(
-                        //               onTap: controller.navigateToSignUp,
-                        //               child: Text(
-                        //                 'Sign Up',
-                        //                 style: TextStyle(
-                        //                   fontSize: 14,
-                        //                   color: AppColors.primary,
-                        //                   fontWeight: FontWeight.w600,
-                        //                 ),
-                        //               ),
-                        //             ),
-                        //           ],
-                        //         ),
-                        //       ),
-                        //     );
-                        //   },
-                        // ),
+                        // Sign Up Link with Animation (Only for Parents)
+                        Obx(
+                          () => AnimatedContainer(
+                            duration: Duration(milliseconds: 500),
+                            height: controller.selectedRole.value == 'Parent'
+                                ? 50
+                                : 0,
+                            child: controller.selectedRole.value == 'Parent'
+                                ? AnimatedBuilder(
+                                    animation: _slideAnimation,
+                                    builder: (context, child) {
+                                      return Transform.translate(
+                                        offset: Offset(
+                                          0,
+                                          30 * (1 - _slideAnimation.value),
+                                        ),
+                                        child: Opacity(
+                                          opacity: _slideAnimation.value.clamp(
+                                            0.0,
+                                            1.0,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                "Don't have an account? ",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap:
+                                                    controller.navigateToSignUp,
+                                                child: Text(
+                                                  'Sign Up',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: AppColors.primary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : SizedBox(),
+                          ),
+                        ),
+
+                        // Teacher Info Message
                       ],
                     ),
                   ),
+
+                  SizedBox(height: 20),
 
                   // Bottom Indicator
                   FadeTransition(
@@ -329,6 +325,112 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildRoleDropdown() {
+    return AnimatedBuilder(
+      animation: _slideAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, 50 * (1 - _slideAnimation.value)),
+          child: Opacity(
+            opacity: _slideAnimation.value.clamp(0.0, 1.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select Your Role',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Obx(
+                    () => DropdownButtonFormField<String>(
+                      value: controller.selectedRole.value?.isEmpty ?? true
+                          ? null
+                          : controller.selectedRole.value,
+                      decoration: InputDecoration(
+                        hintText: 'Choose your role',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 15,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide(
+                            color: Colors.grey[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      dropdownColor: Colors.white,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: 'Parent',
+                          child: Text('Parent'),
+                        ),
+                        DropdownMenuItem<String>(
+                          value: 'Teacher',
+                          child: Text('Teacher'),
+                        ),
+                      ],
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          HapticFeedback.lightImpact();
+                          controller.selectRole(newValue);
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select your role';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -578,29 +680,52 @@ class _LoginScreenState extends State<LoginScreen>
                   borderRadius: BorderRadius.circular(15),
                   onTap: controller.isLoading.value
                       ? null
-                      : () {
+                      : () async {
                           HapticFeedback.mediumImpact();
-                          controller.login();
+                          await controller.login();
                         },
                   child: Container(
                     alignment: Alignment.center,
                     child: controller.isLoading.value
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Signing In...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           )
-                        : Text(
-                            'Log In',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.login, color: Colors.white, size: 22),
+                              SizedBox(width: 8),
+                              Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
                           ),
                   ),
                 ),
@@ -612,27 +737,26 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  // Forgot Password Dialog
   void _showForgotPasswordDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        final TextEditingController emailController = TextEditingController();
-        final RxBool isLoading = false.obs;
-
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           title: Row(
             children: [
-              Icon(Icons.lock_reset, color: AppColors.primary),
-              SizedBox(width: 10),
+              Icon(Icons.lock_reset, color: AppColors.primary, size: 24),
+              SizedBox(width: 8),
               Text(
                 'Reset Password',
                 style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
                 ),
               ),
             ],
@@ -641,64 +765,65 @@ class _LoginScreenState extends State<LoginScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Enter your email address and we\'ll send you a link to reset your password.',
-                style: TextStyle(color: Colors.grey[600]),
+                'We will send a password reset link to your email address.',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
-              SizedBox(height: 20),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: 'Enter your email',
-                  prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: TextField(
+                  controller: controller.emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your email',
+                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Get.back(), child: Text('Cancel')),
-            Obx(
-              () => ElevatedButton(
-                onPressed: isLoading.value
-                    ? null
-                    : () async {
-                        if (emailController.text.trim().isEmpty) {
-                          Get.snackbar(
-                            'Error',
-                            'Please enter your email address',
-                            backgroundColor: Colors.red,
-                            colorText: Colors.white,
-                          );
-                          return;
-                        }
-
-                        isLoading.value = true;
-                        await controller.forgotPassword();
-                        isLoading.value = false;
-                        Get.back();
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
                 ),
-                child: isLoading.value
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'Send Reset Link',
-                        style: TextStyle(color: Colors.white),
-                      ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await controller.forgotPassword();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Text(
+                'Send Reset Link',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

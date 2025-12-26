@@ -1,5 +1,5 @@
 <<<<<<<< HEAD:android/app/src/main/kotlin/com/digislip_parent_app/MainActivity.kt
-package com.example.teacherapp.parents
+package com.digislip_parent_app
 ========
 package com.example.teacherapp.parents
 >>>>>>>> update-contacts:android/app/src/main/kotlin/com/example/teacherapp/parents/MainActivity.kt

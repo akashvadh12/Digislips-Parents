@@ -1,184 +1,218 @@
 // app/modules/notification/notification_screen.dart
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/modules/notification/notification_controller.dart';
+import 'package:digislips/app/shared/widgets/bottomnavigation/navigation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class NotificationScreen extends StatelessWidget {
   final NotificationController controller = Get.put(NotificationController());
+  final BottomNavController bottomNavController = Get.put(
+    BottomNavController(),
+  );
 
   NotificationScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primary,
+    return WillPopScope(
+      onWillPop: () {
+        bottomNavController.changeBottomNavIndex(0);
+        return Future.value(false);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.primary,
 
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primary.withOpacity(0.85),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.85),
+                    ],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => bottomNavController.changeBottomNavIndex(0),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Notifications',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Manage your notifications',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Obx(
+                      () => controller.hasUnreadNotifications
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.mark_email_read,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                showDialog(
+                                  context: Get.context!,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Mark All as Read'),
+                                    content: const Text(
+                                      'Are you sure you want to mark all notifications as read?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          controller.markAllAsRead();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('Confirm'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              tooltip: 'Mark all as read',
+                            )
+                          : const SizedBox(),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'clear_all':
+                            _showClearAllDialog(context);
+                            break;
+                          case 'refresh':
+                            controller.refreshNotifications();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'refresh',
+                          child: Row(
+                            children: [
+                              Icon(Icons.refresh, size: 20),
+                              SizedBox(width: 8),
+                              Text('Refresh'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'clear_all',
+                          child: Row(
+                            children: [
+                              Icon(Icons.clear_all, size: 20),
+                              SizedBox(width: 8),
+                              Text('Clear All'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Notifications',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Manage your notifications',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Obx(
-                    () => controller.hasUnreadNotifications
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.mark_email_read,
-                              color: Colors.white,
-                            ),
-                            onPressed: () => controller.markAllAsRead(),
-                            tooltip: 'Mark all as read',
-                          )
-                        : const SizedBox(),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'clear_all':
-                          _showClearAllDialog(context);
-                          break;
-                        case 'refresh':
-                          controller.refreshNotifications();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'refresh',
-                        child: Row(
-                          children: [
-                            Icon(Icons.refresh, size: 20),
-                            SizedBox(width: 8),
-                            Text('Refresh'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'clear_all',
-                        child: Row(
-                          children: [
-                            Icon(Icons.clear_all, size: 20),
-                            SizedBox(width: 8),
-                            Text('Clear All'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
 
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
                   ),
-                ),
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF1976D2),
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(0xFF1976D2),
+                          ),
                         ),
+                      );
+                    }
+
+                    if (!controller.hasNotifications) {
+                      return _buildEmptyState();
+                    }
+
+                    return RefreshIndicator(
+                      onRefresh: () => controller.refreshNotifications(),
+                      color: const Color(0xFF1976D2),
+                      child: Column(
+                        children: [
+                          // Notification summary
+                          _buildNotificationSummary(),
+                          // Notifications list
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: controller.notifications.length,
+                              itemBuilder: (context, index) {
+                                final notification =
+                                    controller.notifications[index];
+                                return _buildNotificationCard(
+                                  notification,
+                                  context,
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     );
-                  }
-
-                  if (!controller.hasNotifications) {
-                    return _buildEmptyState();
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: () => controller.refreshNotifications(),
-                    color: const Color(0xFF1976D2),
-                    child: Column(
-                      children: [
-                        // Notification summary
-                        _buildNotificationSummary(),
-                        // Notifications list
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: controller.notifications.length,
-                            itemBuilder: (context, index) {
-                              final notification =
-                                  controller.notifications[index];
-                              return _buildNotificationCard(
-                                notification,
-                                context,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
+                  }),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -479,6 +513,12 @@ class NotificationScreen extends StatelessWidget {
         return 'PROFILE';
       case NotificationType.general:
         return 'GENERAL';
+      case NotificationType.newLeaveRequest:
+        return 'NEW REQUEST';
+      case NotificationType.leaveStatusChanged:
+        return 'STATUS CHANGE';
+      case NotificationType.systemAlert:
+        return 'SYSTEM ALERT';
     }
   }
 

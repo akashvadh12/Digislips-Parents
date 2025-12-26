@@ -1,3 +1,4 @@
+import 'package:digislips/app/modules/auth/controllers/Teacher_registration/Teacher_registration.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Get.offAllNamed(Routes.BOTTOM_NAVIGATION);
     } else {
       // User not logged in, go to login page
+ 
       Get.offAllNamed(Routes.LOGIN);
     }
   }

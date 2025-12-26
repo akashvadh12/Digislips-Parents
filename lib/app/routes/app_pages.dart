@@ -1,4 +1,4 @@
-import 'package:digislips/app/modules/auth/StudentRegistration/StudentRegistration.dart';
+import 'package:digislips/app/modules/auth/Registration/Registration.dart';
 import 'package:digislips/app/modules/auth/controllers/registration_controller.dart';
 import 'package:digislips/app/modules/auth/login/login_page.dart';
 import 'package:digislips/app/modules/dashboard/dashboard.dart';

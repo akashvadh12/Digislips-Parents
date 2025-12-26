@@ -3,115 +3,125 @@ import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/profile/Profile_screen.dart';
 import 'package:digislips/app/modules/setting/setting_controller.dart';
+import 'package:digislips/app/shared/widgets/bottomnavigation/navigation_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SettingsScreen extends StatelessWidget {
   final SettingsController controller = Get.put(SettingsController());
+  final BottomNavController bottomNavController = Get.put(
+    BottomNavController(),
+  );
 
   SettingsScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Professional App Bar with Gradient
-            _buildProfessionalAppBar(),
+    return WillPopScope(
+      onWillPop: () {
+        bottomNavController.changeBottomNavIndex(0);
+        return Future.value(false);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.primary,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Professional App Bar with Gradient
+              _buildProfessionalAppBar(),
 
-            // Settings Content
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
+              // Settings Content
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
                   ),
-                ),
-                child: Obx(() {
-                  // Show loading overlay when performing operations
-                  return Stack(
-                    children: [
-                      SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 24),
+                  child: Obx(() {
+                    // Show loading overlay when performing operations
+                    return Stack(
+                      children: [
+                        SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 24),
 
-                            // Enhanced Profile Card
-                            _buildEnhancedProfileCard(),
+                              // Enhanced Profile Card
+                              _buildEnhancedProfileCard(),
 
-                            const SizedBox(height: 24),
+                              const SizedBox(height: 24),
 
-                            // Account Settings Section
-                            _buildSectionHeader('Account Settings'),
-                            const SizedBox(height: 12),
-                            _buildAccountSettingsCard(),
+                              // Account Settings Section
+                              _buildSectionHeader('Account Settings'),
+                              const SizedBox(height: 12),
+                              _buildAccountSettingsCard(),
 
-                            // const SizedBox(height: 24),
+                              // const SizedBox(height: 24),
 
-                            // App Preferences Section
-                            // _buildSectionHeader('App Preferences'),
-                            const SizedBox(height: 12),
+                              // App Preferences Section
+                              // _buildSectionHeader('App Preferences'),
+                              const SizedBox(height: 12),
 
-                            // _buildPreferencesCard(),
-                            const SizedBox(height: 24),
+                              // _buildPreferencesCard(),
+                              const SizedBox(height: 24),
 
-                            // Support & Legal Section
-                            _buildSectionHeader('Support & Legal'),
-                            const SizedBox(height: 12),
-                            _buildSupportCard(),
+                              // Support & Legal Section
+                              _buildSectionHeader('Support & Legal'),
+                              const SizedBox(height: 12),
+                              _buildSupportCard(),
 
-                            const SizedBox(height: 24),
+                              const SizedBox(height: 24),
 
-                            // Account Actions Section
-                            _buildSectionHeader('Account Actions'),
-                            const SizedBox(height: 12),
-                            _buildDangerZoneCard(),
+                              // Account Actions Section
+                              _buildSectionHeader('Account Actions'),
+                              const SizedBox(height: 12),
+                              _buildDangerZoneCard(),
 
-                            const SizedBox(height: 40),
-                          ],
+                              const SizedBox(height: 40),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      // Loading Overlay
-                      if (controller.isLoading.value)
-                        Container(
-                          color: Colors.black.withOpacity(0.3),
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary,
+                        // Loading Overlay
+                        if (controller.isLoading.value)
+                          Container(
+                            color: Colors.black.withOpacity(0.3),
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.primary,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Please wait...',
-                                    style: AppTextStyles.bodyMedium,
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Please wait...',
+                                      style: AppTextStyles.bodyMedium,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  );
-                }),
+                      ],
+                    );
+                  }),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -152,21 +162,6 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           const Spacer(),
-          GestureDetector(
-            onTap: controller.refreshProfile,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(Icons.refresh, color: Colors.white, size: 18),
-            ),
-          ),
         ],
       ),
     );
@@ -268,38 +263,38 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'ID: ${controller.studentId}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        // const SizedBox(width: 8),
+                        // Flexible(
+                        //   child: Text(
+                        //     'ID: ${controller.studentId}',
+                        //     style: TextStyle(
+                        //       fontSize: 12,
+                        //       color: Colors.grey[600],
+                        //       fontWeight: FontWeight.w500,
+                        //     ),
+                        //     overflow: TextOverflow.ellipsis,
+                        //   ),
+                        // ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      controller.department,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      controller.semester,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
+                    // const SizedBox(height: 6),
+                    // Text(
+                    //   controller.department,
+                    //   style: TextStyle(
+                    //     fontSize: 14,
+                    //     color: Colors.grey[700],
+                    //     fontWeight: FontWeight.w500,
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 4),
+                    // Text(
+                    //   controller.semester,
+                    //   style: TextStyle(
+                    //     fontSize: 12,
+                    //     color: Colors.grey[600],
+                    //     fontWeight: FontWeight.w400,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
