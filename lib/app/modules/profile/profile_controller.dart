@@ -1,24 +1,18 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:digislips/app/modules/auth/models/user_model.dart';
 import 'package:digislips/app/modules/dashboard/dashboard_controller.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/splash_screen/splash_screen.dart';
-import 'package:digislips/app/routes/app_rout.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class ProfileController extends GetxController {
-  // Firestore and Storage instances
+  // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // User data observables
   var currentUser =
