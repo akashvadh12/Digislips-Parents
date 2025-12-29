@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.teacherapp.parents"
+    namespace = "com.rs.parent_leave_approval_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.teacherapp.parents"
+        applicationId = "com.rs.parent_leave_approval_app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

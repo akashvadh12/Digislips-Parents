@@ -17,17 +17,29 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -40,49 +52,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCYVc4ahkUXMHQOeEo1gcV_jDFnjeYaM0A',
-    appId: '1:647962445664:web:c1fc5053129efbb6a08005',
-    messagingSenderId: '647962445664',
-    projectId: 'digi-slip-3cc90',
-    authDomain: 'digi-slip-3cc90.firebaseapp.com',
-    storageBucket: 'digi-slip-3cc90.firebasestorage.app',
-    measurementId: 'G-MJYQPF8B8L',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCOcocbvrZBZGKqeckZHcEbfKiJS9vHjMs',
-    appId: '1:647962445664:android:cb7e7d93a3717a20a08005',
-    messagingSenderId: '647962445664',
-    projectId: 'digi-slip-3cc90',
-    storageBucket: 'digi-slip-3cc90.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBwol-YNIcvHJLu06gvNMXDzRUXom42Gu8',
-    appId: '1:647962445664:ios:16401ae1d0bcf3cfa08005',
-    messagingSenderId: '647962445664',
-    projectId: 'digi-slip-3cc90',
-    storageBucket: 'digi-slip-3cc90.firebasestorage.app',
-    iosBundleId: 'com.example.digislips',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBwol-YNIcvHJLu06gvNMXDzRUXom42Gu8',
-    appId: '1:647962445664:ios:16401ae1d0bcf3cfa08005',
-    messagingSenderId: '647962445664',
-    projectId: 'digi-slip-3cc90',
-    storageBucket: 'digi-slip-3cc90.firebasestorage.app',
-    iosBundleId: 'com.example.digislips',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCYVc4ahkUXMHQOeEo1gcV_jDFnjeYaM0A',
-    appId: '1:647962445664:web:c29f9686472b9f6ea08005',
-    messagingSenderId: '647962445664',
-    projectId: 'digi-slip-3cc90',
-    authDomain: 'digi-slip-3cc90.firebaseapp.com',
-    storageBucket: 'digi-slip-3cc90.firebasestorage.app',
-    measurementId: 'G-QNZ450SBLC',
+    apiKey: 'AIzaSyDEexhhzY7SxrwLFDSHadWmByKqcXALyYw',
+    appId: '1:259312936552:android:5d80c99604f54457b6fddd',
+    messagingSenderId: '259312936552',
+    projectId: 'studentapp-ca1f7',
+    storageBucket: 'studentapp-ca1f7.firebasestorage.app',
   );
 }
