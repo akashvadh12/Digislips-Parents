@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:digislips/app/core/theme/app_colors.dart';
 import 'package:digislips/app/core/theme/app_text_styles.dart';
 import 'package:digislips/app/modules/profile/Profile_screen.dart';
@@ -9,7 +8,7 @@ import 'package:get/get.dart';
 class SettingsScreen extends StatelessWidget {
   final SettingsController controller = Get.put(SettingsController());
 
-  SettingsScreen({Key? key}) : super(key: key);
+  SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +124,10 @@ class SettingsScreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.85)],
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withValues(alpha: 0.85),
+          ],
         ),
       ),
       child: Row(
@@ -224,7 +226,7 @@ class SettingsScreen extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: AppColors.success ?? Colors.green,
+                        color: AppColors.success,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -482,7 +484,10 @@ class SettingsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.2), width: 1),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: 0.2),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -525,7 +530,9 @@ class SettingsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
+                  color: (iconColor ?? AppColors.primary).withValues(
+                    alpha: 0.1,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(

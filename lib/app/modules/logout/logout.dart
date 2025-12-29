@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 class LogoutPage extends StatelessWidget {
   final LogoutController controller = Get.put(LogoutController());
 
+  LogoutPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,11 +165,7 @@ class LogoutPage extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              Icons.logout_rounded,
-              color: Colors.white,
-              size: 45,
-            ),
+            child: Icon(Icons.logout_rounded, color: Colors.white, size: 45),
           ),
         );
       },
@@ -215,7 +213,7 @@ class LogoutPage extends StatelessWidget {
   Widget _buildLogoutProgress() {
     return Obx(() {
       if (!controller.isLoggingOut.value) return SizedBox.shrink();
-      
+
       return Column(
         children: [
           SizedBox(height: 20),
@@ -262,7 +260,7 @@ class LogoutPage extends StatelessWidget {
   Widget _buildActionButtons() {
     return Obx(() {
       if (controller.isLoggingOut.value) return SizedBox.shrink();
-      
+
       return Column(
         children: [
           _buildPrimaryButton(),
@@ -281,10 +279,7 @@ class LogoutPage extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppColors.error,
-              AppColors.error.withValues(alpha: 0.8),
-            ],
+            colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -301,11 +296,7 @@ class LogoutPage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.logout_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
+            Icon(Icons.logout_rounded, color: Colors.white, size: 22),
             SizedBox(width: 12),
             Text(
               'Yes, Logout',
@@ -329,10 +320,7 @@ class LogoutPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.borderColor,
-            width: 1.5,
-          ),
+          border: Border.all(color: AppColors.borderColor, width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -344,11 +332,7 @@ class LogoutPage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.close_rounded,
-              color: AppColors.greyColor,
-              size: 22,
-            ),
+            Icon(Icons.close_rounded, color: AppColors.greyColor, size: 22),
             SizedBox(width: 12),
             Text(
               'Cancel',
@@ -368,6 +352,8 @@ class LogoutPage extends StatelessWidget {
 // Alternative Minimal Logout Dialog (Optional)
 class LogoutDialog extends StatelessWidget {
   final LogoutController controller = Get.put(LogoutController());
+
+  LogoutDialog({super.key});
 
   static void show() {
     Get.dialog(
@@ -403,15 +389,14 @@ class LogoutDialog extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.error, AppColors.error.withValues(alpha: 0.7)],
+                  colors: [
+                    AppColors.error,
+                    AppColors.error.withValues(alpha: 0.7),
+                  ],
                 ),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: Colors.white,
-                size: 40,
-              ),
+              child: Icon(Icons.logout_rounded, color: Colors.white, size: 40),
             ),
             SizedBox(height: 24),
             Text(
@@ -453,7 +438,10 @@ class LogoutDialog extends StatelessWidget {
                       padding: EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [AppColors.error, AppColors.error.withValues(alpha: 0.8)],
+                          colors: [
+                            AppColors.error,
+                            AppColors.error.withValues(alpha: 0.8),
+                          ],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),

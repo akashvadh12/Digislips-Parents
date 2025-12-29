@@ -8,8 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/root/get_material_app.dart';
+
 import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -121,7 +120,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
 
-  const MyApp({required this.isLoggedIn});
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {

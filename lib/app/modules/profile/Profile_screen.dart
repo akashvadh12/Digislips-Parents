@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 class ProfileScreen extends StatelessWidget {
   final ProfileController controller = Get.put(ProfileController());
 
+  ProfileScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -803,7 +805,7 @@ class ProfileScreen extends StatelessWidget {
               border: Border.all(color: AppColors.borderColor, width: 1.5),
             ),
             child: DropdownButtonFormField<String>(
-              value: controller.selectedSemester.value,
+              initialValue: controller.selectedSemester.value,
               decoration: InputDecoration(
                 prefixIcon: Container(
                   margin: EdgeInsets.all(12),

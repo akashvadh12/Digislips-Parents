@@ -40,7 +40,7 @@ class BottomNavBarWidget extends StatelessWidget {
             backgroundColor: Colors.white,
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textGrey,
-            selectedLabelStyle: AppTextStyles.bottomNavActiveLabel?.copyWith(
+            selectedLabelStyle: AppTextStyles.bottomNavActiveLabel.copyWith(
               fontWeight: FontWeight.w600,
             ),
             unselectedLabelStyle: AppTextStyles.bottomNavLabel,

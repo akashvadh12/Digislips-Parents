@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class StatusChip extends StatelessWidget {
   final String status;
 
-  const StatusChip({Key? key, required this.status}) : super(key: key);
+  const StatusChip({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -39,23 +39,19 @@ class StatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: textColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: textColor,
-          ),
+          Icon(icon, size: 14, color: textColor),
           const SizedBox(width: 4),
           Text(
-            status.toLowerCase() == 'pending' ? 'Pending' :
-            status.toLowerCase() == 'approved' ? 'Approved' : 'Rejected',
+            status.toLowerCase() == 'pending'
+                ? 'Pending'
+                : status.toLowerCase() == 'approved'
+                ? 'Approved'
+                : 'Rejected',
             style: TextStyle(
               color: textColor,
               fontSize: 12,

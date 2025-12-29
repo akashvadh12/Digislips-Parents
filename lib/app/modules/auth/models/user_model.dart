@@ -78,14 +78,14 @@ class Student {
     bool? profileComplete,
   }) {
     return Student(
-      uid: this.uid,
+      uid: uid,
       fullName: fullName ?? this.fullName,
-      email: this.email, // Email usually shouldn't be editable
+      email: email, // Email usually shouldn't be editable
       phone: phone ?? this.phone,
       parentEmail: parentEmail ?? this.parentEmail,
       parentPhone: parentPhone ?? this.parentPhone,
       department: department ?? this.department,
-      rollNumber: this.rollNumber, // Roll number usually shouldn't be editable
+      rollNumber: rollNumber, // Roll number usually shouldn't be editable
       semester: semester ?? this.semester,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
@@ -110,12 +110,12 @@ class Student {
 
   // Validation methods
   bool get hasParentContact => parentEmail.isNotEmpty || parentPhone.isNotEmpty;
-  
+
   bool get isParentEmailValid {
     if (parentEmail.isEmpty) return true; // Optional field
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(parentEmail);
   }
-  
+
   bool get isParentPhoneValid {
     if (parentPhone.isEmpty) return true; // Optional field
     return parentPhone.length >= 10;
