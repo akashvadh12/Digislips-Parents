@@ -251,8 +251,10 @@ class LoginController extends GetxController {
   // Navigate to registration screen (only for parents)
   void navigateToSignUp() {
     if (isParent.value) {
-      //Get.to(TeacherRegistrationPage());
       Get.to(() => RegistrationScreen());
+    }
+    if (isTeacher.value) {
+      Get.to(TeacherRegistrationPage());
     } else {
       _showSnackbar(
         'Info',

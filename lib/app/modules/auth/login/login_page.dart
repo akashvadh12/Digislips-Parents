@@ -246,56 +246,43 @@ class _LoginScreenState extends State<LoginScreen>
 
                         // Sign Up Link with Animation (Only for Parents)
                         Obx(
-                          () => AnimatedContainer(
-                            duration: Duration(milliseconds: 500),
-                            height: controller.selectedRole.value == 'Parent'
-                                ? 50
-                                : 0,
-                            child: controller.selectedRole.value == 'Parent'
-                                ? AnimatedBuilder(
-                                    animation: _slideAnimation,
-                                    builder: (context, child) {
-                                      return Transform.translate(
-                                        offset: Offset(
-                                          0,
-                                          30 * (1 - _slideAnimation.value),
-                                        ),
-                                        child: Opacity(
-                                          opacity: _slideAnimation.value.clamp(
-                                            0.0,
-                                            1.0,
+                          () => controller.shouldShowSignup
+                              ? AnimatedOpacity(
+                                  opacity: _slideAnimation.value,
+                                  duration: Duration(milliseconds: 500),
+                                  child: GestureDetector(
+                                    onTap: controller.navigateToSignUp,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Don't have an account? ",
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                              fontSize: 15,
+                                            ),
                                           ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                "Don't have an account? ",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                              GestureDetector(
-                                                onTap:
-                                                    controller.navigateToSignUp,
-                                                child: Text(
-                                                  'Sign Up',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: AppColors.primary,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                          Text(
+                                            "Sign Up",
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : SizedBox(),
-                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : SizedBox.shrink(),
                         ),
 
                         // Teacher Info Message
