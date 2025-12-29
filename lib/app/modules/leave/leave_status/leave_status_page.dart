@@ -156,7 +156,8 @@ class LeaveRequestsScreen extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.only(top: 16.0),
                           child: Obx(() {
-                            if (leaveController.isLoading.value) {
+                            // Check if we should show loading state
+                            if (leaveController.shouldShowLoading) {
                               return Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
