@@ -20,7 +20,7 @@ class TeacherRegistrationPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
           'Teacher Registration',
@@ -166,7 +166,7 @@ class TeacherRegistrationPage extends StatelessWidget {
                   style: TextStyle(color: Colors.grey),
                 ),
                 GestureDetector(
-                  onTap: () => Get.back(),
+                  onTap: () => Navigator.pop(context),
                   child: const Text(
                     'Login',
                     style: TextStyle(

@@ -83,10 +83,9 @@ class RegistrationScreen extends StatelessWidget {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(25),
-                              child: Icon(
-                                Icons.person_add_alt_1,
-                                size: 50,
-                                color: Colors.white,
+                              child: Image.asset(
+                                'assets/images/DigiSlips.png',
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),
@@ -204,9 +203,9 @@ class RegistrationScreen extends StatelessWidget {
 
                         // Sign In Link
                         Center(
-                          child: TextButton(
-                            onPressed: () {
-                              Get.toNamed('/login');
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
                             },
                             child: RichText(
                               text: TextSpan(

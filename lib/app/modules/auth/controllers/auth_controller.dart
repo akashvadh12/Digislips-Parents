@@ -248,23 +248,23 @@ class LoginController extends GetxController {
     }
   }
 
-  // Navigate to registration screen (only for parents)
+  // Navigate to registration screen (for both parents and teachers)
   void navigateToSignUp() {
+    if (selectedRole.value == null || selectedRole.value!.isEmpty) {
+      _showSnackbar('Info', 'Please select your role first');
+      return;
+    }
+
     if (isParent.value) {
       Get.to(() => RegistrationScreen());
-    }
-    if (isTeacher.value) {
-      Get.to(TeacherRegistrationPage());
-    } else {
-      _showSnackbar(
-        'Info',
-        'Only parents can sign up. Teachers should contact administration.',
-      );
+    } else if (isTeacher.value) {
+      Get.to(() => TeacherRegistrationPage());
     }
   }
 
-  // Check if signup should be visible (only for parents)
-  bool get shouldShowSignup => isParent.value;
+  // Check if signup should be visible (for both parents and teachers)
+  bool get shouldShowSignup =>
+      selectedRole.value != null && selectedRole.value!.isNotEmpty;
 
   // Error display helper
   void _showSnackbar(String title, String message, {bool isSuccess = false}) {

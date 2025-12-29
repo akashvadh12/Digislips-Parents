@@ -247,36 +247,37 @@ class _LoginScreenState extends State<LoginScreen>
 
                         SizedBox(height: 24),
 
-                        // Sign Up Link with Animation (Only for Parents)
-                        AnimatedOpacity(
-                          opacity: _slideAnimation.value,
-                          duration: Duration(milliseconds: 500),
-                          child: GestureDetector(
-                            onTap: controller.navigateToSignUp,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8.0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    "Don't have an account? ",
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 15,
+                        // Sign Up Link with Animation (For both Parents and Teachers)
+                        Obx(
+                          () => Visibility(
+                            visible: controller.shouldShowSignup,
+                            child: GestureDetector(
+                              onTap: controller.navigateToSignUp,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Don't have an account? ",
+                                      style: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontSize: 15,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    "Sign Up",
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      decoration: TextDecoration.underline,
+                                    Text(
+                                      "Sign Up",
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        decoration: TextDecoration.underline,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
