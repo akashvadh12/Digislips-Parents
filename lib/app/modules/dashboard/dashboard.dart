@@ -80,7 +80,6 @@ class HomeView extends GetView<HomeController> {
                       Stack(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(16),
@@ -136,6 +135,7 @@ class HomeView extends GetView<HomeController> {
 
             Expanded(
               child: Container(
+                clipBehavior: Clip.antiAlias,
                 decoration: const BoxDecoration(
                   color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.only(
