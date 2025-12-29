@@ -553,14 +553,14 @@ class LeaveController extends GetxController {
                       TextButton(
                         onPressed: () {
                           print('❌ Approval dialog cancelled');
-                          Get.back();
+                          Get.back(closeOverlays: false);
                         },
                         child: Text('Cancel'),
                       ),
                       TextButton(
                         onPressed: () async {
                           print('❌ Rejecting leave request: ${request.id}');
-                          Get.back();
+                          Get.back(closeOverlays: false);
                           await updateLeaveStatus(
                             request.id!,
                             'Rejected',
@@ -579,7 +579,7 @@ class LeaveController extends GetxController {
                       ElevatedButton(
                         onPressed: () async {
                           print('✅ Approving leave request: ${request.id}');
-                          Get.back();
+                          Get.back(closeOverlays: false);
                           await updateLeaveStatus(
                             request.id!,
                             'Approved',

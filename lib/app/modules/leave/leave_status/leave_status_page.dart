@@ -45,12 +45,11 @@ class LeaveRequestsScreen extends StatelessWidget {
                         // Back Button
                         IconButton(
                           onPressed: () {
-                            Get.back();
+                            Navigator.pop(context);
                           },
+                          iconSize: 20,
                           icon: const Icon(Icons.arrow_back_ios_new_rounded),
                           style: IconButton.styleFrom(
-                            iconSize: 20,
-
                             backgroundColor: Colors.white.withOpacity(0.2),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.all(8),
