@@ -176,6 +176,8 @@ class LeaveController extends GetxController {
   }
 
   List<LeaveModel> get filteredRequests {
+    // Return empty list immediately on first load to show loading state instead of empty state
+    // This is determined by checking if isLoading is true OR if leaveRequests is empty AND we just initialized
     List<LeaveModel> filtered = leaveRequests;
 
     // Apply status filter
@@ -190,6 +192,12 @@ class LeaveController extends GetxController {
     }
 
     return filtered;
+  }
+
+  // Getter to check if we should show loading state
+  bool get shouldShowLoading {
+    return isLoading.value ||
+        (leaveRequests.isEmpty && currentUserId.isNotEmpty);
   }
 
   // Helper method to determine final status based on dual approvals
@@ -462,7 +470,6 @@ class LeaveController extends GetxController {
 
   // Method to show approval/rejection dialog
   Future<void> showApprovalDialog(LeaveModel request) async {
-    String? reviewComments;
     final TextEditingController commentsController = TextEditingController();
 
     bool hasAlreadyReviewed = false;
@@ -485,116 +492,351 @@ class LeaveController extends GetxController {
 
     Get.dialog(
       Dialog(
-        insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        backgroundColor: Colors.transparent,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-                left: 16,
-                right: 16,
-                top: 16,
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Review Leave Application',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              decoration: BoxDecoration(
+                color: Color(0xFFF0F0F3),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF000000).withOpacity(0.1),
+                    blurRadius: 30,
+                    offset: Offset(0, 10),
                   ),
-                  SizedBox(height: 8),
-                  Text('Student: ${request.fullName}'),
-                  Text('Roll Number: ${request.rollNumber}'),
-                  Text('Leave Type: ${request.leaveType}'),
-                  Text('Duration: ${request.totalDays} days'),
-                  Text('Reason: ${request.reason}'),
-                  SizedBox(height: 8),
-                  Text(
-                    'Review Status:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    getReviewStatusText(request),
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  if (hasAlreadyReviewed) ...[
-                    SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'You have already ${existingStatus?.toLowerCase()} this request.',
-                        style: TextStyle(
-                          color: Colors.orange.shade800,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: commentsController,
-                    decoration: InputDecoration(
-                      labelText: 'Review Comments (Optional)',
-                      border: OutlineInputBorder(),
-                      hintText: 'Add your comments here...',
-                    ),
-                    maxLines: 3,
-                    onChanged: (value) => reviewComments = value,
-                  ),
-                  SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          print('❌ Approval dialog cancelled');
-                          Get.back(closeOverlays: false);
-                        },
-                        child: Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          print('❌ Rejecting leave request: ${request.id}');
-                          Get.back(closeOverlays: false);
-                          await updateLeaveStatus(
-                            request.id!,
-                            'Rejected',
-                            reviewComments:
-                                commentsController.text.trim().isEmpty
-                                ? null
-                                : commentsController.text.trim(),
-                            studentId: request.uid,
-                          );
-                        },
-                        child: Text(
-                          'Reject',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          print('✅ Approving leave request: ${request.id}');
-                          Get.back(closeOverlays: false);
-                          await updateLeaveStatus(
-                            request.id!,
-                            'Approved',
-                            reviewComments:
-                                commentsController.text.trim().isEmpty
-                                ? null
-                                : commentsController.text.trim(),
-                            studentId: request.uid,
-                          );
-                        },
-                        child: Text('Approve'),
-                      ),
-                    ],
+                  BoxShadow(
+                    color: Color(0xFFFFFFFF).withOpacity(0.5),
+                    blurRadius: 20,
+                    offset: Offset(-5, -5),
                   ),
                 ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF000000).withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Review Leave Application',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2D3142),
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Container(
+                            width: 35,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: Color(0xFF4A9EFF),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    // Data Container with 2-column compact layout
+                    Flexible(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFF000000).withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: EdgeInsets.all(14),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Row 1: Student Name & Roll Number (2-column)
+                              Row(
+                                children: [
+                                  _buildCompactDataField(
+                                    'Student Name',
+                                    request.fullName.toString(),
+                                  ),
+                                  SizedBox(width: 12),
+                                  _buildCompactDataField(
+                                    'Roll Number',
+                                    request.rollNumber.toString(),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Divider(height: 1, color: Color(0xFFEEEEEE)),
+                              SizedBox(height: 12),
+                              // Row 2: Leave Type & Duration (2-column)
+                              Row(
+                                children: [
+                                  _buildCompactDataField(
+                                    'Leave Type',
+                                    request.leaveType,
+                                  ),
+                                  SizedBox(width: 12),
+                                  _buildCompactDataField(
+                                    'Duration',
+                                    '${request.totalDays} days',
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Divider(height: 1, color: Color(0xFFEEEEEE)),
+                              SizedBox(height: 12),
+                              // Row 3: Reason (Full width)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Reason',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFFA0A3B1),
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    request.reason,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2D3142),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Divider(height: 1, color: Color(0xFFEEEEEE)),
+                              SizedBox(height: 12),
+                              // Row 4: Status (Full width)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Status',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFFA0A3B1),
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    getReviewStatusText(request),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2D3142),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // Already Reviewed Banner
+                              if (hasAlreadyReviewed) ...[
+                                SizedBox(height: 12),
+                                Divider(height: 1, color: Color(0xFFEEEEEE)),
+                                SizedBox(height: 12),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFFFFF8E1),
+                                        Color(0xFFFFE0B2),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                  padding: EdgeInsets.all(10),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '⚠️',
+                                        style: TextStyle(fontSize: 16),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Already Reviewed',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFFE65100),
+                                              ),
+                                            ),
+                                            Text(
+                                              'You have already reviewed this request. Your previous decision: $existingStatus',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFFBF360C),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              // Comments Field
+                              SizedBox(height: 12),
+                              Divider(height: 1, color: Color(0xFFEEEEEE)),
+                              SizedBox(height: 12),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Color(0xFFFAFAFC),
+                                  border: Border.all(
+                                    color: Color(0xFFEEEEEE),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(
+                                        0xFF000000,
+                                      ).withOpacity(0.05),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                padding: EdgeInsets.all(12),
+                                child: TextField(
+                                  controller: commentsController,
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                    color: Color(0xFF2D3142),
+                                    fontSize: 13,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText: 'Comments (Optional)',
+                                    labelStyle: TextStyle(
+                                      color: Color(0xFFA0A3B1),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    border: InputBorder.none,
+                                    hintText: 'Add comments if needed...',
+                                    hintStyle: TextStyle(
+                                      color: Color(0xFFD0D3DB),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 14),
+                    // Action Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _buildNeumoButton(
+                          label: 'Cancel',
+                          onPressed: () {
+                            if (context.mounted) {
+                              print('❌ Approval dialog cancelled');
+                              Get.back();
+                            }
+                          },
+                          isPrimary: false,
+                          isCompact: true,
+                        ),
+                        SizedBox(width: 6),
+                        _buildNeumoButton(
+                          label: 'Reject',
+                          icon: '✕',
+                          onPressed: () async {
+                            if (context.mounted) {
+                              Get.back();
+                            }
+                            print('❌ Rejecting leave request: ${request.id}');
+                            await updateLeaveStatus(
+                              request.id!,
+                              'Rejected',
+                              reviewComments:
+                                  commentsController.text.trim().isEmpty
+                                  ? null
+                                  : commentsController.text.trim(),
+                              studentId: request.uid,
+                            );
+                          },
+                          isDestructive: true,
+                          isCompact: true,
+                        ),
+                        SizedBox(width: 6),
+                        _buildNeumoButton(
+                          label: 'Approve',
+                          icon: '✓',
+                          onPressed: () async {
+                            if (context.mounted) {
+                              Get.back();
+                            }
+                            print('✅ Approving leave request: ${request.id}');
+                            await updateLeaveStatus(
+                              request.id!,
+                              'Approved',
+                              reviewComments:
+                                  commentsController.text.trim().isEmpty
+                                  ? null
+                                  : commentsController.text.trim(),
+                              studentId: request.uid,
+                            );
+                          },
+                          isPrimary: true,
+                          isCompact: true,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -790,5 +1032,119 @@ class LeaveController extends GetxController {
       return approvalData['teacherStatus'] as String?;
     }
     return null;
+  }
+
+  // Neumorphic Button Builder with Compact Support
+  Widget _buildNeumoButton({
+    required String label,
+    required VoidCallback onPressed,
+    String? icon,
+    bool isPrimary = false,
+    bool isDestructive = false,
+    bool isCompact = false,
+  }) {
+    Color bgColor;
+    Color textColor;
+    List<BoxShadow> shadows;
+
+    if (isDestructive) {
+      bgColor = Color(0xFFFFF5F5);
+      textColor = Color(0xFFE74C3C);
+      shadows = [
+        BoxShadow(
+          color: Color(0xFFE74C3C).withOpacity(0.15),
+          blurRadius: 15,
+          offset: Offset(0, 6),
+        ),
+      ];
+    } else if (isPrimary) {
+      bgColor = Color(0xFF4A9EFF);
+      textColor = Colors.white;
+      shadows = [
+        BoxShadow(
+          color: Color(0xFF4A9EFF).withOpacity(0.3),
+          blurRadius: 20,
+          offset: Offset(0, 8),
+        ),
+      ];
+    } else {
+      bgColor = Colors.white;
+      textColor = Color(0xFF2D3142);
+      shadows = [
+        BoxShadow(
+          color: Color(0xFF000000).withOpacity(0.08),
+          blurRadius: 15,
+          offset: Offset(0, 4),
+        ),
+      ];
+    }
+
+    final horizontalPadding = isCompact ? 14.0 : 20.0;
+    final verticalPadding = isCompact ? 8.0 : 12.0;
+    final fontSize = isCompact ? 12.0 : 14.0;
+
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: shadows,
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Text(icon, style: TextStyle(fontSize: isCompact ? 14 : 16)),
+              SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Compact Data Field Builder for 2-column layout
+  Widget _buildCompactDataField(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFA0A3B1),
+              letterSpacing: 0.2,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2D3142),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
