@@ -28,7 +28,10 @@ class TeacherRegistrationPage extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(24, 20, 24, 40),
               child: Column(
                 children: [
-                  Text('Create Teacher Account', style: AppTextStyles.welcomeTitle),
+                  Text(
+                    'Create Teacher Account',
+                    style: AppTextStyles.welcomeTitle,
+                  ),
                   SizedBox(height: 8),
                   Text(
                     'Join DigiSlips today',
@@ -340,21 +343,20 @@ class TeacherRegistrationPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Department',
-          style: AppTextStyles.label,
-        ),
+        Text('Department', style: AppTextStyles.label),
         SizedBox(height: 8),
         Obx(
           () => Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
             child: DropdownButtonFormField<String>(
               value: controller.selectedDepartment.value,
               onChanged: controller.selectDepartment,
               decoration: InputDecoration(
-                prefixIcon: Icon(Icons.school_outlined, color: Colors.grey[400], size: 20),
+                prefixIcon: Icon(
+                  Icons.school_outlined,
+                  color: Colors.grey[400],
+                  size: 20,
+                ),
                 hintText: 'Select your department',
                 hintStyle: AppTextStyles.hint,
                 filled: true,
@@ -373,10 +375,7 @@ class TeacherRegistrationPage extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppColors.primary,
-                    width: 2,
-                  ),
+                  borderSide: BorderSide(color: AppColors.primary, width: 2),
                 ),
               ),
               dropdownColor: Colors.white,
