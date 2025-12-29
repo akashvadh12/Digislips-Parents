@@ -63,8 +63,42 @@ class NotificationModel {
       'relatedStudentId': relatedStudentId,
       'relatedStudentName': relatedStudentName,
       'backgroundColor': backgroundColor.value,
-      'iconCodePoint': icon.codePoint,
+      'iconName': _getIconName(icon),
     };
+  }
+
+  static String _getIconName(IconData icon) {
+    if (icon == Icons.check_circle) return 'check_circle';
+    if (icon == Icons.cancel) return 'cancel';
+    if (icon == Icons.pending) return 'pending';
+    if (icon == Icons.send) return 'send';
+    if (icon == Icons.new_releases) return 'new_releases';
+    if (icon == Icons.update) return 'update';
+    if (icon == Icons.person) return 'person';
+    if (icon == Icons.info) return 'info';
+    return 'info';
+  }
+
+  static IconData _getIconFromName(String iconName) {
+    switch (iconName) {
+      case 'check_circle':
+        return Icons.check_circle;
+      case 'cancel':
+        return Icons.cancel;
+      case 'pending':
+        return Icons.pending;
+      case 'send':
+        return Icons.send;
+      case 'new_releases':
+        return Icons.new_releases;
+      case 'update':
+        return Icons.update;
+      case 'person':
+        return Icons.person;
+      case 'info':
+      default:
+        return Icons.info;
+    }
   }
 
   factory NotificationModel.fromMap(Map<String, dynamic> map) {
@@ -83,7 +117,7 @@ class NotificationModel {
       relatedStudentId: map['relatedStudentId'],
       relatedStudentName: map['relatedStudentName'],
       backgroundColor: Color(map['backgroundColor']),
-      icon: IconData(map['iconCodePoint'], fontFamily: 'MaterialIcons'),
+      icon: _getIconFromName(map['iconName'] ?? 'info'),
     );
   }
 

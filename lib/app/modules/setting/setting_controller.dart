@@ -134,6 +134,8 @@ class SettingsController extends GetxController {
         userData['email'] = userEmail.value;
 
         // Get profile image URL from Realtime Database
+        // Temporarily bypassed - no profile images database currently
+        /* 
         try {
           final DatabaseReference dbRef = FirebaseDatabase.instance.ref().child(
             'profile_images/${userUid.value}',
@@ -147,6 +149,7 @@ class SettingsController extends GetxController {
         } catch (e) {
           print('Error fetching profile image: $e');
         }
+        */
 
         currentUser.value = userData;
         print('✅ Current teacher loaded: ${userData['fullName']}');
@@ -224,6 +227,8 @@ class SettingsController extends GetxController {
         userData['email'] = userEmail.value;
 
         // Get profile image URL from Realtime Database
+        // Temporarily bypassed - no profile images database currently
+        /* 
         try {
           final DatabaseReference dbRef = FirebaseDatabase.instance.ref().child(
             'profile_images/${userUid.value}',
@@ -237,6 +242,7 @@ class SettingsController extends GetxController {
         } catch (e) {
           print('Error fetching profile image: $e');
         }
+        */
 
         currentUser.value = userData;
         print('✅ Current user loaded: ${userData['fullName']}');

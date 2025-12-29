@@ -160,9 +160,9 @@ class _LoginScreenState extends State<LoginScreen>
                             ],
                           ).createShader(bounds),
                           child: Text(
-                            'DigiSlips',
+                            'Parent Leave Approver',
                             style: AppTextStyles.brandName?.copyWith(
-                              fontSize: 32,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -172,6 +172,7 @@ class _LoginScreenState extends State<LoginScreen>
                           'Your Digital School Companion',
                           style: AppTextStyles.subtitle?.copyWith(
                             color: Colors.grey[600],
+                            fontSize: 14,
                           ),
                         ),
                       ],
