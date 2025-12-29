@@ -27,7 +27,10 @@ class RegistrationScreen extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(24, 20, 24, 40),
               child: Column(
                 children: [
-                  Text('Create Account', style: AppTextStyles.welcomeTitle),
+                  Text(
+                    'Create Parent Account',
+                    style: AppTextStyles.welcomeTitle,
+                  ),
                   SizedBox(height: 8),
                   Text(
                     'Join DigiSlips today',
