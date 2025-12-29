@@ -19,6 +19,9 @@ class _LoginScreenState extends State<LoginScreen>
   late AnimationController _logoAnimationController;
   late AnimationController _fadeController;
 
+  // Track role selection error state
+  final RxBool roleError = false.obs;
+
   late Animation<double> _slideAnimation;
   late Animation<double> _logoAnimation;
   late Animation<double> _fadeAnimation;
@@ -333,19 +336,21 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
                 SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Obx(
-                    () => DropdownButtonFormField<String>(
+                Obx(
+                  () => Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: roleError.value
+                              ? Colors.red.withOpacity(0.2)
+                              : Colors.grey.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: DropdownButtonFormField<String>(
                       value: controller.selectedRole.value?.isEmpty ?? true
                           ? null
                           : controller.selectedRole.value,
@@ -356,7 +361,9 @@ class _LoginScreenState extends State<LoginScreen>
                           fontSize: 15,
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: roleError.value
+                            ? Colors.red.withOpacity(0.05)
+                            : Colors.white,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 18,
@@ -368,14 +375,18 @@ class _LoginScreenState extends State<LoginScreen>
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
                           borderSide: BorderSide(
-                            color: Colors.grey[200]!,
-                            width: 1,
+                            color: roleError.value
+                                ? Colors.red
+                                : Colors.grey[200]!,
+                            width: roleError.value ? 2 : 1,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
                           borderSide: BorderSide(
-                            color: AppColors.primary,
+                            color: roleError.value
+                                ? Colors.red
+                                : AppColors.primary,
                             width: 2,
                           ),
                         ),
@@ -400,6 +411,7 @@ class _LoginScreenState extends State<LoginScreen>
                         if (newValue != null) {
                           HapticFeedback.lightImpact();
                           controller.selectRole(newValue);
+                          roleError.value = false;
                         }
                       },
                       validator: (value) {
@@ -408,6 +420,33 @@ class _LoginScreenState extends State<LoginScreen>
                         }
                         return null;
                       },
+                    ),
+                  ),
+                ),
+                // Error message display
+                Obx(
+                  () => Visibility(
+                    visible: roleError.value,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 16,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Please select your role to continue',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -666,6 +705,20 @@ class _LoginScreenState extends State<LoginScreen>
                   onTap: controller.isLoading.value
                       ? null
                       : () async {
+                          // Check if role is selected before login
+                          if (controller.selectedRole.value == null ||
+                              controller.selectedRole.value!.isEmpty) {
+                            // Show error state on role dropdown
+                            roleError.value = true;
+                            HapticFeedback.heavyImpact();
+
+                            // Auto-hide error after 3 seconds
+                            Future.delayed(Duration(seconds: 3), () {
+                              roleError.value = false;
+                            });
+                            return;
+                          }
+
                           HapticFeedback.mediumImpact();
                           await controller.login();
                         },

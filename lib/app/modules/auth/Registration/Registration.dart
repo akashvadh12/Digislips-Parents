@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 class RegistrationScreen extends StatelessWidget {
   final RegistrationController controller = Get.put(RegistrationController());
 
+  RegistrationScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
