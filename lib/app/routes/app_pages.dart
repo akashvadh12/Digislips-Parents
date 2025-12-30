@@ -2,6 +2,8 @@ import 'package:digislips/app/modules/auth/Registration/Registration.dart';
 import 'package:digislips/app/modules/auth/controllers/registration_controller.dart';
 import 'package:digislips/app/modules/auth/login/login_page.dart';
 import 'package:digislips/app/modules/dashboard/dashboard.dart';
+import 'package:digislips/app/modules/leave/leave%20history/leave_history_controller.dart';
+import 'package:digislips/app/modules/leave/leave%20history/leave_history_page.dart';
 import 'package:digislips/app/modules/splash_screen/splash_screen.dart';
 import 'package:digislips/app/shared/widgets/bottomnavigation/bottomnavigation.dart';
 import 'package:digislips/app/shared/widgets/bottomnavigation/navigation_controller.dart';
@@ -15,6 +17,7 @@ class Routes {
   static const STUDENT_REGISTRATION = '/student-registration';
   static const BOTTOM_NAVIGATION = '/bottom-navigation';
   static const LEAVE_STATUS = '/leave-status';
+  static const hsitory_page = '/history-page';
 }
 
 class AppPages {
@@ -40,6 +43,13 @@ class AppPages {
       page: () => BottomNavBarWidget(),
       binding: BindingsBuilder(() {
         Get.lazyPut<BottomNavController>(() => BottomNavController());
+      }),
+    ),
+    GetPage(
+      name: Routes.hsitory_page,
+      page: () => LeaveHistoryPage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<LeaveHistoryController>(() => LeaveHistoryController());
       }),
     ),
   ];

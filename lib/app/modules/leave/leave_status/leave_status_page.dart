@@ -87,7 +87,19 @@ class LeaveRequestsScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // Add notification or action icon
+                        // Add History icon or action icon
+                        IconButton(
+                          onPressed: () {
+                            Get.toNamed('/history-page');
+                          },
+                          iconSize: 20,
+                          icon: const Icon(Icons.history_rounded),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.all(8),
+                          ),
+                        ),
                       ],
                     ),
                   ],

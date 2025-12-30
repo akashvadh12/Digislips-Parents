@@ -95,7 +95,6 @@ class LeaveRequestCard extends StatelessWidget {
                                     const SizedBox(width: 4),
                                     Text(
                                       leaveRequest.leaveType.isEmpty
-                                      
                                           ? 'Leave Request'
                                           : leaveRequest.leaveType,
                                       style: AppTextStyles.bodyMedium.copyWith(
