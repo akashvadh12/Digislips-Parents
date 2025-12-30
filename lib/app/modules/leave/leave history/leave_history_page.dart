@@ -93,7 +93,7 @@ class LeaveHistoryPage extends GetView<LeaveHistoryController> {
                     Obx(() {
                       final isParent = controller.userRole.value == 'Parent';
                       if (isParent) return SizedBox.shrink();
-                      
+
                       return Padding(
                         padding: const EdgeInsets.only(
                           left: 20,
@@ -101,7 +101,8 @@ class LeaveHistoryPage extends GetView<LeaveHistoryController> {
                           bottom: 10,
                         ),
                         child: TextField(
-                          onChanged: (value) => controller.setSearchQuery(value),
+                          onChanged: (value) =>
+                              controller.setSearchQuery(value),
                           style: TextStyle(color: AppColors.blackColor),
                           decoration: InputDecoration(
                             hintText: 'Search by name...',
