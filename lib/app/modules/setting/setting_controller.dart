@@ -363,7 +363,7 @@ class SettingsController extends GetxController {
                       ),
                     ),
                     child: Text(
-                      'Reset Email',
+                      'Reset Password',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -379,12 +379,10 @@ class SettingsController extends GetxController {
   // Send password reset email
   Future<void> _sendPasswordResetEmail() async {
     try {
-      Get.back(); // Close dialog
       isLoading.value = true;
-
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-
       _showSuccessSnackbar('Email Sent', 'Password reset email sent to $email');
+      Get.back(); // Close dialog
     } catch (e) {
       _showErrorSnackbar(
         'Error',

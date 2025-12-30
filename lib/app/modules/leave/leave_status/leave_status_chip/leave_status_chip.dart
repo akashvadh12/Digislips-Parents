@@ -24,7 +24,7 @@ class StatusChip extends StatelessWidget {
         backgroundColor = AppColors.greyColor.withOpacity(0.1);
         textColor = AppColors.greyColor;
         icon = Icons.help_outline;
-        displayText = 'Approved';
+        displayText = 'Partially Approved';
         break;
       case 'rejected':
         backgroundColor = AppColors.rejectedColor.withOpacity(0.1);
@@ -52,20 +52,26 @@ class StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: textColor.withOpacity(0.3), width: 1),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 4),
-          Text(
-            displayText,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: textColor),
+            const SizedBox(width: 4),
+            Text(
+              displayText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -94,6 +94,9 @@ class LeaveController extends GetxController {
         leaveRequests.value = leaves;
         print('✅ Successfully fetched ${leaves.length} leave requests');
 
+        // Mark initial load as complete
+        _initialLoadComplete.value = true;
+
         // Load dual approval data for each leave request
         _loadDualApprovalData();
 
@@ -102,6 +105,9 @@ class LeaveController extends GetxController {
       },
       onError: (error) {
         print('❌ Error fetching leave requests: $error');
+
+        // Mark initial load as complete even on error
+        _initialLoadComplete.value = true;
 
         CustomSnackbar.showError(
           'Error',
@@ -194,10 +200,15 @@ class LeaveController extends GetxController {
     return filtered;
   }
 
+  // Track if initial load is complete
+  final RxBool _initialLoadComplete = false.obs;
+
   // Getter to check if we should show loading state
   bool get shouldShowLoading {
-    return isLoading.value ||
-        (leaveRequests.isEmpty && currentUserId.isNotEmpty);
+    // Only show loading during initial fetch, not during status updates
+    return !_initialLoadComplete.value &&
+        leaveRequests.isEmpty &&
+        currentUserId.isNotEmpty;
   }
 
   // Helper method to determine final status based on dual approvals
@@ -360,62 +371,59 @@ class LeaveController extends GetxController {
       }
 
       // Update Firestore with both role-specific and main fields
-      await FirebaseFirestore.instance
-          .collection('students')
-          .doc(actualStudentId)
-          .collection('leave')
-          .doc(leaveId)
-          .update(updateFields);
+      await _writeLeaveUpdateWithRetry(actualStudentId, leaveId, updateFields);
 
       // Update local dual approval data
       dualApprovalData[leaveId] = currentApprovalData;
       dualApprovalData.refresh();
 
-      // Update the main leave request status in local state
-      final updatedRequests = leaveRequests.map((request) {
-        if (request.id == leaveId) {
-          return LeaveModel(
-            id: request.id,
-            leaveType: request.leaveType,
-            fromDate: request.fromDate,
-            toDate: request.toDate,
-            totalDays: request.totalDays,
-            reason: request.reason,
-            destination: request.destination,
-            travelMode: request.travelMode,
-            documentUrls: request.documentUrls,
-            status: finalStatus,
-            submittedAt: request.submittedAt,
-            submittedBy: request.submittedBy,
-            reviewedBy: updateFields['reviewedBy'] as String?,
-            reviewedAt: DateTime.now(),
-            reviewComments: updateFields['reviewComments'] as String?,
-            uid: request.uid,
-            fullName: request.fullName,
-            email: request.email,
-            phone: request.phone,
-            parentEmail: request.parentEmail,
-            parentPhone: request.parentPhone,
-            rollNumber: request.rollNumber,
-            department: request.department,
-            semester: request.semester,
-            profileImageUrl: request.profileImageUrl,
-            isEmailVerified: request.isEmailVerified,
-            profileComplete: request.profileComplete,
-            createdAt: request.createdAt,
-            updatedAt: DateTime.now(),
-          );
-        }
-        return request;
-      }).toList();
+      // Update the main leave request status in local state using assignAll for proper GetX reactivity
+      final index = leaveRequests.indexWhere((r) => r.id == leaveId);
+      if (index != -1) {
+        leaveRequests[index] = LeaveModel(
+          id: leaveRequests[index].id,
+          leaveType: leaveRequests[index].leaveType,
+          fromDate: leaveRequests[index].fromDate,
+          toDate: leaveRequests[index].toDate,
+          totalDays: leaveRequests[index].totalDays,
+          reason: leaveRequests[index].reason,
+          destination: leaveRequests[index].destination,
+          travelMode: leaveRequests[index].travelMode,
+          documentUrls: leaveRequests[index].documentUrls,
+          status: finalStatus,
+          submittedAt: leaveRequests[index].submittedAt,
+          submittedBy: leaveRequests[index].submittedBy,
+          reviewedBy: updateFields['reviewedBy'] as String?,
+          reviewedAt: DateTime.now(),
+          reviewComments: updateFields['reviewComments'] as String?,
+          uid: leaveRequests[index].uid,
+          fullName: leaveRequests[index].fullName,
+          email: leaveRequests[index].email,
+          phone: leaveRequests[index].phone,
+          parentEmail: leaveRequests[index].parentEmail,
+          parentPhone: leaveRequests[index].parentPhone,
+          rollNumber: leaveRequests[index].rollNumber,
+          department: leaveRequests[index].department,
+          semester: leaveRequests[index].semester,
+          profileImageUrl: leaveRequests[index].profileImageUrl,
+          isEmailVerified: leaveRequests[index].isEmailVerified,
+          profileComplete: leaveRequests[index].profileComplete,
+          createdAt: leaveRequests[index].createdAt,
+          updatedAt: DateTime.now(),
+        );
 
-      leaveRequests.value = updatedRequests;
-      leaveRequests.refresh();
+        // Ensure RxList notifies listeners
+        leaveRequests.refresh();
+      }
 
-      String message = _getSuccessMessage(finalStatus, status);
-      CustomSnackbar.showSuccess('Success', message);
+      // Force GetX to notify listeners
+      update();
 
       print('✅ Leave status updated successfully');
+
+      // Show success message (fire and forget - don't await)
+      String message = _getSuccessMessage(finalStatus, status);
+      CustomSnackbar.showSuccess('Success', message);
     } catch (e) {
       print('❌ Failed to update leave status: $e');
 
@@ -426,6 +434,21 @@ class LeaveController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> _writeLeaveUpdateWithRetry(
+    String studentId,
+    String leaveId,
+    Map<String, dynamic> updateFields,
+  ) async {
+    // Use Firestore's built-in offline persistence - writes are cached locally
+    // and synced when connection is available. No need for manual timeout.
+    await FirebaseFirestore.instance
+        .collection('students')
+        .doc(studentId)
+        .collection('leave')
+        .doc(leaveId)
+        .update(updateFields);
   }
 
   // Helper method to calculate final status from approval data
@@ -487,6 +510,30 @@ class LeaveController extends GetxController {
           hasAlreadyReviewed = true;
           existingStatus = approvalData['teacherStatus'] as String?;
         }
+      }
+    }
+
+    Future<void> handleDecision(String targetStatus) async {
+      final comment = commentsController.text.trim();
+
+      // Close dialog first
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      // Wait for dialog to fully close before updating
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      try {
+        await updateLeaveStatus(
+          request.id!,
+          targetStatus,
+          reviewComments: comment.isEmpty ? null : comment,
+          studentId: request.uid,
+        );
+      } catch (e) {
+        // Errors are already surfaced via snackbar; this catch prevents crashes.
+        debugPrint('handleDecision error: $e');
       }
     }
 
@@ -781,8 +828,8 @@ class LeaveController extends GetxController {
                         _buildNeumoButton(
                           label: 'Cancel',
                           onPressed: () {
-                            if (context.mounted) {
-                              print('❌ Approval dialog cancelled');
+                            print('❌ Approval dialog cancelled');
+                            if (Get.isDialogOpen ?? false) {
                               Get.back();
                             }
                           },
@@ -793,21 +840,7 @@ class LeaveController extends GetxController {
                         _buildNeumoButton(
                           label: 'Reject',
                           icon: '✕',
-                          onPressed: () async {
-                            if (context.mounted) {
-                              Get.back();
-                            }
-                            print('❌ Rejecting leave request: ${request.id}');
-                            await updateLeaveStatus(
-                              request.id!,
-                              'Rejected',
-                              reviewComments:
-                                  commentsController.text.trim().isEmpty
-                                  ? null
-                                  : commentsController.text.trim(),
-                              studentId: request.uid,
-                            );
-                          },
+                          onPressed: () => handleDecision('Rejected'),
                           isDestructive: true,
                           isCompact: true,
                         ),
@@ -815,21 +848,7 @@ class LeaveController extends GetxController {
                         _buildNeumoButton(
                           label: 'Approve',
                           icon: '✓',
-                          onPressed: () async {
-                            if (context.mounted) {
-                              Get.back();
-                            }
-                            print('✅ Approving leave request: ${request.id}');
-                            await updateLeaveStatus(
-                              request.id!,
-                              'Approved',
-                              reviewComments:
-                                  commentsController.text.trim().isEmpty
-                                  ? null
-                                  : commentsController.text.trim(),
-                              studentId: request.uid,
-                            );
-                          },
+                          onPressed: () => handleDecision('Approved'),
                           isPrimary: true,
                           isCompact: true,
                         ),

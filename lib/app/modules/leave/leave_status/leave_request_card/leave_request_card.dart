@@ -93,14 +93,20 @@ class LeaveRequestCard extends StatelessWidget {
                                       color: _getLeaveTypeColor(),
                                     ),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      leaveRequest.leaveType.isEmpty
-                                          ? 'Leave Request'
-                                          : leaveRequest.leaveType,
-                                      style: AppTextStyles.bodyMedium.copyWith(
-                                        fontSize: 14,
-                                        color: _getLeaveTypeColor(),
-                                        fontWeight: FontWeight.w600,
+                                    Expanded(
+                                      child: Text(
+                                        leaveRequest.leaveType.isEmpty
+                                            ? 'Leave Request'
+                                            : leaveRequest.leaveType,
+                                        maxLines: 2,
+                                        softWrap: true,
+                                        overflow: TextOverflow.visible,
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              fontSize: 14,
+                                              color: _getLeaveTypeColor(),
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
                                     ),
                                   ],
